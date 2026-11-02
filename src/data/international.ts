@@ -1,0 +1,81 @@
+import type { Development } from "@/lib/types";
+
+// International standard-setters and cross-border developments (context for the priority markets).
+export const INTL: Development[] = [
+  {
+    id: "intl-issb-adoption",
+    title: "ISSB standards (IFRS S1/S2) — jurisdictional adoption and 2025 amendments",
+    jurisdiction: "INTL",
+    topics: ["disclosures"],
+    type: "Standard",
+    status: "In force",
+    authority: "International Sustainability Standards Board (ISSB)",
+    date: "2025-12",
+    summary:
+      "IFRS S1 and S2 (June 2023) are the global baseline: more than 35 jurisdictions have adopted or are moving to adopt them, including Australia, Brazil, Japan (SSBJ), Singapore, the UK and (via its own basic standards) China. In December 2025 the ISSB issued targeted amendments to IFRS S2 easing GHG measurement (e.g., relief for financed emissions categories and jurisdictional GHG methods).",
+    appliesTo: ["Listed issuers", "Asset managers"],
+    impact: "High",
+    sources: [{ label: "IFRS – ISSB", url: "https://www.ifrs.org/groups/international-sustainability-standards-board/" }],
+  },
+  {
+    id: "intl-icj-advisory-opinion",
+    title: "ICJ Advisory Opinion on States' obligations in respect of climate change",
+    jurisdiction: "INTL",
+    topics: ["litigation"],
+    type: "Court decision",
+    status: "Decided",
+    authority: "International Court of Justice",
+    date: "2025-07-23",
+    summary:
+      "The ICJ unanimously advised that States have binding obligations under international law to prevent significant harm to the climate system, including regulating private actors, and that breaches may entail state responsibility. Expected to be cited widely in domestic climate litigation, alongside the ECtHR's KlimaSeniorinnen judgment (April 2024) and the Inter-American Court advisory opinion (2025).",
+    appliesTo: ["Large companies"],
+    impact: "Medium",
+    sources: [{ label: "International Court of Justice", url: "https://www.icj-cij.org/" }],
+  },
+  {
+    id: "intl-basel-climate-disclosure",
+    title: "Basel Committee voluntary framework for climate-related financial risk disclosures",
+    jurisdiction: "INTL",
+    topics: ["sf-benchmarks", "disclosures"],
+    type: "Standard",
+    status: "Adopted",
+    authority: "Basel Committee on Banking Supervision (BCBS)",
+    date: "2025-06",
+    summary:
+      "After consulting on a mandatory Pillar 3 climate disclosure framework, the BCBS published (June 2025) a voluntary framework that jurisdictions may adopt, reflecting divergence among members. The 2022 Principles for effective management and supervision of climate-related financial risks remain in place.",
+    appliesTo: ["Banks"],
+    impact: "Low",
+    sources: [{ label: "BIS – Basel Committee", url: "https://www.bis.org/bcbs/" }],
+  },
+  {
+    id: "intl-net-zero-alliances",
+    title: "Net-zero financial alliances retrench (NZBA, NZAM, Climate Action 100+)",
+    jurisdiction: "INTL",
+    topics: ["sf-benchmarks", "litigation", "governance"],
+    type: "Policy / Roadmap",
+    status: "Paused / Withdrawn",
+    authority: "GFANZ alliances",
+    date: "2025-10",
+    summary:
+      "Under antitrust and political pressure in the US, major banks and asset managers exited climate alliances during 2024–25. The Net Zero Asset Managers initiative suspended activities pending review (January 2025) and relaunched with a revised commitment; the Net-Zero Banking Alliance members voted to cease operating as a membership alliance (2025).",
+    implications: "Review public commitments and reporting tied to alliance membership; ensure statements remain accurate after any exit.",
+    appliesTo: ["Asset managers", "Banks", "Asset owners"],
+    impact: "Medium",
+    sources: [{ label: "Net Zero Asset Managers", url: "https://www.netzeroassetmanagers.org/" }],
+  },
+  {
+    id: "intl-iosco-esg-ratings",
+    title: "IOSCO recommendations on ESG ratings and data providers; transition plans",
+    jurisdiction: "INTL",
+    topics: ["sf-benchmarks", "enforcement"],
+    type: "Guidance",
+    status: "In force",
+    authority: "IOSCO",
+    date: "2024-11",
+    summary:
+      "IOSCO's 2021 recommendations on ESG ratings and data providers form the basis for the EU, UK, Japanese, Singapore and Indian regimes. IOSCO has also published supervisory practices to address greenwashing (2023) and reports on transition plans and voluntary carbon markets (2024).",
+    appliesTo: ["Ratings & data providers", "Asset managers"],
+    impact: "Low",
+    sources: [{ label: "IOSCO", url: "https://www.iosco.org/" }],
+  },
+];
