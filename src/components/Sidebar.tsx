@@ -9,6 +9,7 @@ const MAIN = [
   { href: "/x/overview", label: "Overview" },
   { href: "/x/developments", label: "Developments" },
   { href: "/x/timeline", label: "Timeline & deadlines" },
+  { href: "/x/feed", label: "Live feed" },
   { href: "/x/jurisdictions", label: "Jurisdictions" },
   { href: "/x/about", label: "Methodology" },
 ];

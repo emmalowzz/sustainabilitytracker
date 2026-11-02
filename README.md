@@ -24,6 +24,7 @@ international standard-setters for context.
 | `/x/timeline` | Upcoming / past key dates, filterable by market and topic |
 | `/x/jurisdictions/[code]` | Market profile: posture by topic, developments grouped by topic, upcoming dates |
 | `/x/topics/[id]` | Cross-market comparison for one topic + filtered explorer |
+| `/x/feed` | Live feed: items pulled from regulator APIs/RSS, legislatures, courts and news, for triage (also as JSON at `/api/feed`) |
 | `/x/about` | Methodology, definitions and how to maintain the data |
 
 ## Running locally
@@ -35,6 +36,16 @@ npm run build   # production build (also type-checks all data)
 ```
 
 Deploys to Vercel with zero configuration.
+
+## Live data sources
+
+See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md) for the full catalogue. Quick start:
+
+```bash
+cp .env.example .env.local   # set FEED_CONTACT_EMAIL (and optionally COURTLISTENER_TOKEN, RSS_FEEDS)
+npm run feeds:check          # live health check of every source
+npm run test:feeds           # offline pipeline tests
+```
 
 ## Maintaining the data
 
