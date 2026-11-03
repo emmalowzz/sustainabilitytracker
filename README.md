@@ -24,8 +24,13 @@ international standard-setters for context.
 | `/x/timeline` | Upcoming / past key dates, filterable by market and topic |
 | `/x/jurisdictions/[code]` | Market profile: posture by topic, developments grouped by topic, upcoming dates |
 | `/x/topics/[id]` | Cross-market comparison for one topic + filtered explorer |
+| `/x/briefing` | **Briefing pack builder**: pick markets, topics, period, impact and items; generates a cover, executive summary, heatmap, deadlines, detailed developments and sources. Print/Save as PDF (A4), download for Word, export Markdown, or share the configuration as a link. Also reachable from the explorer ("Build briefing from view"). |
 | `/x/feed` | Live feed: items pulled from regulator APIs/RSS, legislatures, courts and news, for triage (also as JSON at `/api/feed`) |
 | `/x/about` | Methodology, definitions and how to maintain the data |
+
+## Theme
+
+Navy and crimson corporate palette, with a green scale for sustainability signals (posture heatmap, progress, sustainability topics). The brand values are approximations: replace the four `BRAND` tokens at the top of `src/app/globals.css` with the official hex codes. Light and dark mode are both supported. The briefing pack always prints on white.
 
 ## Running locally
 

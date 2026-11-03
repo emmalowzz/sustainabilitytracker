@@ -173,6 +173,9 @@ export default function Explorer({ base = DEVELOPMENTS, hide = [] }: { base?: De
               <option value="impact">Highest impact</option>
               <option value="jurisdiction">By market</option>
             </select>
+            <a className="btn btn-green" href={`/x/briefing${filtersToParams({ ...EMPTY_FILTERS, j: filters.j, t: filters.t, i: filters.i })}`}>
+              Build briefing from view
+            </a>
             <button className="btn btn-primary" onClick={download}>
               Export CSV
             </button>

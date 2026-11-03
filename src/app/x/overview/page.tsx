@@ -25,9 +25,14 @@ export default function OverviewPage() {
             Singapore, Japan, Korea, Australia, India, China, the US, Brazil, the UK and the EU.
           </p>
         </div>
-        <Link href="/x/developments" className="btn btn-primary">
-          Explore all developments →
-        </Link>
+        <div className="row">
+          <Link href="/x/developments" className="btn">
+            Explore developments
+          </Link>
+          <Link href="/x/briefing" className="btn btn-green">
+            Build briefing pack →
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
@@ -36,7 +41,7 @@ export default function OverviewPage() {
           <div className="stat-value">{priority.length}</div>
           <div className="stat-note">across 10 priority markets</div>
         </div>
-        <div className="panel stat">
+        <div className="panel stat red">
           <div className="stat-label">High impact</div>
           <div className="stat-value">{high}</div>
           <div className="stat-note">flagged for asset managers</div>
@@ -46,7 +51,7 @@ export default function OverviewPage() {
           <div className="stat-value">{live}</div>
           <div className="stat-note">live obligations or regimes</div>
         </div>
-        <div className="panel stat">
+        <div className="panel stat navy">
           <div className="stat-label">In the pipeline</div>
           <div className="stat-value">{pipeline}</div>
           <div className="stat-note">proposals & consultations</div>
