@@ -1,4 +1,4 @@
-import type { FeedItem, FetchContext, SourceStatus } from "./types";
+import type { FeedItem, FetchContext, SourceKind, SourceStatus } from "./types";
 import { allSources, type RegisteredSource } from "./sources";
 import { isRelevant, suggestTopics } from "./classify";
 
@@ -45,7 +45,20 @@ function errorMessage(e: unknown): string {
   return cause ? `${err.message} (${cause})` : err.message || String(e);
 }
 
-export async function aggregate(opts: { lookbackDays?: number; only?: string[] } = {}): Promise<FeedResult> {
+export interface AggregateOptions {
+  lookbackDays?: number;
+  /** Source ids to run. */
+  only?: string[];
+  /** Restrict to sources for these jurisdictions. */
+  jurisdictions?: string[];
+  /** Restrict to these source kinds. */
+  kinds?: SourceKind[];
+}
+
+/** Official channels only: regulator feeds, official registers and legislatures (no news monitoring or court search). */
+export const OFFICIAL_KINDS: SourceKind[] = ["Regulator news", "Official register", "Legislature"];
+
+export async function aggregate(opts: AggregateOptions = {}): Promise<FeedResult> {
   const days = opts.lookbackDays ?? Number(process.env.FEED_LOOKBACK_DAYS ?? 60);
   const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
   const ctx: FetchContext = {
@@ -54,7 +67,12 @@ export async function aggregate(opts: { lookbackDays?: number; only?: string[] }
     fetchJSON: async (u, i) => (await timedFetch(u, { ...i, headers: { Accept: "application/json", ...(i?.headers ?? {}) } })).json(),
   };
 
-  const sources = allSources().filter((s) => !opts.only || opts.only.includes(s.id));
+  const sources = allSources().filter(
+    (s) =>
+      (!opts.only || opts.only.includes(s.id)) &&
+      (!opts.jurisdictions || opts.jurisdictions.includes(s.jurisdiction)) &&
+      (!opts.kinds || opts.kinds.includes(s.kind)),
+  );
   const settled = await Promise.all(
     sources.map(async (src) => {
       const base = { id: src.id, name: src.name, jurisdiction: src.jurisdiction, kind: src.kind, confidence: src.confidence, docs: src.docs };

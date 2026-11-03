@@ -1,4 +1,5 @@
 import { DEVELOPMENTS, PROFILES } from "@/data";
+import type { FeedItem } from "@/feeds/types";
 import type { Development } from "./types";
 import { JURISDICTIONS, PRIORITY_CODES, TOPICS, jurisdiction, topic, type Impact, type JurisdictionCode, type TopicId } from "./taxonomy";
 import { dateKey, formatDate, isUpcoming, timelineItems, type TimelineItem } from "./query";
@@ -8,6 +9,7 @@ export const SECTIONS = [
   { id: "heatmap", label: "Regulatory heatmap" },
   { id: "deadlines", label: "Upcoming deadlines" },
   { id: "detail", label: "Detailed developments" },
+  { id: "updates", label: "Recent regulator updates" },
   { id: "sources", label: "Sources appendix" },
 ] as const;
 export type SectionId = (typeof SECTIONS)[number]["id"];
@@ -197,7 +199,12 @@ export function postureFor(code: JurisdictionCode, t: TopicId) {
   return PROFILES.find((p) => p.code === code)?.posture[t];
 }
 
-export function packToMarkdown(p: Pack): string {
+/** Regulator feed items relevant to the pack's markets and period. */
+export function updatesFor(items: FeedItem[], c: BriefConfig): FeedItem[] {
+  return items.filter((i) => c.j.includes(i.jurisdiction) && (!i.date || i.date >= c.since) && (!i.topics.length || i.topics.some((t) => c.t.includes(t))));
+}
+
+export function packToMarkdown(p: Pack, updates: FeedItem[] = []): string {
   const c = p.config;
   const L: string[] = [];
   L.push(`# ${c.title}`, "", `**Prepared for:** ${c.audience}  `, `**Prepared by:** ${c.author}  `, `**Date:** ${formatDate(p.today)}  `, `**Classification:** ${c.cls}`, "");
@@ -230,6 +237,11 @@ export function packToMarkdown(p: Pack): string {
         L.push("", `Sources: ${d.sources.map((s) => `[${s.label}](${s.url})`).join(", ")}`, "");
       }
     }
+  }
+  if (has("updates") && updates.length) {
+    L.push("## Recent regulator updates", "", "_Unreviewed items from regulator feeds, filtered for sustainability relevance._", "");
+    updates.forEach((u) => L.push(`- ${u.date ? formatDate(u.date) : ""} — **${u.jurisdiction}** · ${u.sourceName}: [${u.title}](${u.url})`));
+    L.push("");
   }
   L.push("---", `_Monitoring aid compiled from the Sustainability Tracker; not legal advice. Verify against primary sources._`);
   return L.join("\n");

@@ -2,7 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CLASSIFICATIONS, SECTIONS, buildPack, candidates, configFromParams, configToParams, packToMarkdown, type BriefConfig, type SectionId } from "@/lib/briefing";
+import type { FeedResult } from "@/feeds/aggregate";
+import { CLASSIFICATIONS, SECTIONS, buildPack, updatesFor, candidates, configFromParams, configToParams, packToMarkdown, type BriefConfig, type SectionId } from "@/lib/briefing";
 import { JURISDICTIONS, PRIORITY_CODES, TOPICS, type Impact } from "@/lib/taxonomy";
 import BriefingDocument from "./BriefingDocument";
 
@@ -61,6 +62,24 @@ export default function BriefingBuilder() {
   const pack = useMemo(() => (cfg && today ? buildPack(cfg, today) : null), [cfg, today]);
   const pool = useMemo(() => (cfg && today ? candidates(cfg, today) : []), [cfg, today]);
 
+  // Regulator feed items for the optional "Recent regulator updates" section (fetched once, filtered per config).
+  const [feed, setFeed] = useState<FeedResult | null>(null);
+  const [feedError, setFeedError] = useState("");
+  useEffect(() => {
+    fetch("/api/feed?scope=official&days=365")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(setFeed)
+      .catch((e) => setFeedError(String(e.message ?? e)));
+  }, []);
+  const updates = useMemo(() => (feed && cfg ? updatesFor(feed.items, cfg).slice(0, 40) : []), [feed, cfg]);
+  const updatesNote = feedError
+    ? `Regulator feeds could not be loaded (${feedError}).`
+    : !feed
+      ? "Loading regulator feeds…"
+      : feed.sources.every((s) => !s.ok)
+        ? "Regulator feeds could not be reached when this pack was generated."
+        : undefined;
+
   if (!cfg || !today || !pack) return <div className="panel empty">Loading builder…</div>;
 
   const set = <K extends keyof BriefConfig>(k: K, v: BriefConfig[K]) => setCfg({ ...cfg, [k]: v });
@@ -75,7 +94,7 @@ export default function BriefingBuilder() {
     const doc = `<!doctype html><html><head><meta charset="utf-8"><title>${cfg.title}</title><style>body{font-family:Calibri,Arial,sans-serif;color:#0b1f3a}${packCss()}.bp-pagefoot{display:none}</style></head><body>${html}</body></html>`;
     download(`${fileBase}.doc`, doc, "application/msword");
   };
-  const exportMd = () => download(`${fileBase}.md`, packToMarkdown(pack), "text/markdown;charset=utf-8");
+  const exportMd = () => download(`${fileBase}.md`, packToMarkdown(pack, updates), "text/markdown;charset=utf-8");
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -232,7 +251,7 @@ export default function BriefingBuilder() {
       </aside>
 
       <div ref={packRef}>
-        <BriefingDocument p={pack} />
+        <BriefingDocument p={pack} updates={updates} updatesNote={updatesNote} />
       </div>
     </div>
   );

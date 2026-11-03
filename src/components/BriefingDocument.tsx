@@ -3,6 +3,7 @@ import { addMonths, postureFor } from "@/lib/briefing";
 import { jurisdiction, topic } from "@/lib/taxonomy";
 import { formatDate } from "@/lib/query";
 import type { Development, PostureLevel } from "@/lib/types";
+import type { FeedItem } from "@/feeds/types";
 
 const LEVEL: Record<PostureLevel, string> = {
   Mandatory: "bp-lvl-Mandatory",
@@ -90,7 +91,7 @@ function Item({ d }: { d: Development }) {
   );
 }
 
-export default function BriefingDocument({ p }: { p: Pack }) {
+export default function BriefingDocument({ p, updates = [], updatesNote }: { p: Pack; updates?: FeedItem[]; updatesNote?: string }) {
   const c = p.config;
   const has = (s: SectionId) => c.sections.includes(s);
   const sources = [...new Map(p.items.flatMap((d) => d.sources).map((s) => [s.url, s])).values()];
@@ -99,6 +100,7 @@ export default function BriefingDocument({ p }: { p: Pack }) {
     has("heatmap") && "Regulatory heatmap",
     has("deadlines") && "Upcoming deadlines",
     has("detail") && `Detailed developments (by ${c.groupBy})`,
+    has("updates") && "Recent regulator updates",
     has("sources") && "Sources appendix",
   ].filter(Boolean) as string[];
 
@@ -319,6 +321,47 @@ export default function BriefingDocument({ p }: { p: Pack }) {
           ))}
           {!p.groups.length && <p className="bp-muted">No developments in scope.</p>}
           <Foot p={p} label="Detailed developments" />
+        </section>
+      )}
+
+      {/* Regulator updates */}
+      {has("updates") && (
+        <section className="bp-page flow">
+          <H2>Recent regulator updates</H2>
+          <p className="bp-muted bp-small" style={{ marginBottom: 8 }}>
+            Items published by regulators in the selected markets since {formatDate(c.since)}, filtered automatically for sustainability relevance.
+            These have not been reviewed; they are included for awareness.
+          </p>
+          {updates.length ? (
+            <table className="bp-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 90 }}>Date</th>
+                  <th style={{ width: 72, whiteSpace: "nowrap" }}>Market</th>
+                  <th>Update</th>
+                  <th style={{ width: "26%" }}>Regulator</th>
+                </tr>
+              </thead>
+              <tbody>
+                {updates.map((u) => (
+                  <tr key={u.id}>
+                    <td>{u.date ? formatDate(u.date) : "—"}</td>
+                    <td>
+                      {jurisdiction(u.jurisdiction)?.flag} {u.jurisdiction}
+                    </td>
+                    <td>
+                      <a href={u.url}>{u.title}</a>
+                      {u.topics.length > 0 && <div className="bp-muted bp-small">{u.topics.map((t) => topic(t)?.short).join(" · ")}</div>}
+                    </td>
+                    <td className="bp-muted">{u.sourceName}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : (
+            <p className="bp-muted">{updatesNote ?? "No regulator updates were retrieved for the selected markets and period."}</p>
+          )}
+          <Foot p={p} label="Regulator updates" />
         </section>
       )}
 

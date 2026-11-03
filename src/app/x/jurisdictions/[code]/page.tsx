@@ -3,9 +3,13 @@ import { notFound } from "next/navigation";
 import { DEVELOPMENTS, PROFILES } from "@/data";
 import DevCard from "@/components/DevCard";
 import Upcoming from "@/components/Upcoming";
+import RegulatorUpdates from "@/components/RegulatorUpdates";
 import { LEVEL_CLASS } from "@/components/Heatmap";
 import { JURISDICTIONS, TOPICS } from "@/lib/taxonomy";
 import { sortDevs } from "@/lib/query";
+
+// Regulator feeds are refreshed at most hourly.
+export const revalidate = 3600;
 
 export function generateStaticParams() {
   return JURISDICTIONS.map((j) => ({ code: j.code }));
@@ -100,6 +104,7 @@ export default async function JurisdictionPage({ params }: { params: Promise<{ c
               <Upcoming devs={devs} limit={10} />
             </div>
           </section>
+          <RegulatorUpdates code={j.code} limit={10} />
         </div>
       </div>
     </>

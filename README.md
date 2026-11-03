@@ -25,7 +25,6 @@ international standard-setters for context.
 | `/x/jurisdictions/[code]` | Market profile: posture by topic, developments grouped by topic, upcoming dates |
 | `/x/topics/[id]` | Cross-market comparison for one topic + filtered explorer |
 | `/x/briefing` | **Briefing pack builder**: pick markets, topics, period, impact and items; generates a cover, executive summary, heatmap, deadlines, detailed developments and sources. Print/Save as PDF (A4), download for Word, export Markdown, or share the configuration as a link. Also reachable from the explorer ("Build briefing from view"). |
-| `/x/feed` | Live feed: items pulled from regulator APIs/RSS, legislatures, courts and news, for triage (also as JSON at `/api/feed`) |
 | `/x/about` | Methodology, definitions and how to maintain the data |
 
 ## Theme
@@ -41,6 +40,10 @@ npm run build   # production build (also type-checks all data)
 ```
 
 Deploys to Vercel with zero configuration.
+
+## Regulator updates
+
+Regulators' RSS feeds and official registers feed a *Regulator updates* panel on the Overview and on each market page, and an optional section in briefing packs. Feed coverage per regulator is on the Methodology page.
 
 ## Live data sources
 

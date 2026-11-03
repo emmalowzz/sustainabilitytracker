@@ -2,80 +2,79 @@
 
 The tracker has two layers:
 
-1. **Curated dataset** (`src/data/`): reviewed, summarised developments. This powers the overview, explorer, timeline and market pages.
-2. **Live feed** (`/x/feed`, `/api/feed`, `src/feeds/`): automatic pulls from external sources, filtered for sustainability relevance. These are
-   **candidates for triage**. A reviewer decides what gets promoted into the curated dataset.
+1. **Curated dataset** (`src/data/`): reviewed, summarised developments. This powers the overview, explorer, timeline, market pages and the main
+   sections of briefing packs.
+2. **Regulator updates** (`src/feeds/`): automatic pulls from regulators' RSS feeds and official registers, filtered for sustainability
+   relevance. They appear in the *Regulator updates* panel on the Overview and on each market page, and in the optional *Recent regulator
+   updates* section of a briefing pack. They are unreviewed. Promote anything material into the curated dataset.
+   They are also available as JSON at `/api/feed` (e.g. `/api/feed?scope=official&jur=UK,EU`).
 
-No public API gives you structured, multi-market ESG regulatory intelligence. Official sources publish documents and news, not
-"developments", so a human review step is still needed.
+## Regulator RSS feeds (`src/feeds/regulators.ts`)
 
-## Connected sources
+Researched November 2026 using web search. The feed addresses could not be fetched from the build environment, so run
+`npm run feeds:check` from a networked machine to confirm them.
 
-| Id | Source | Market | Type | Key needed | Status |
-| --- | --- | --- | --- | --- | --- |
-| `us-federal-register` | [Federal Register API](https://www.federalregister.gov/developers/documentation/api/v1) | US | Proposed/final rules (SEC, DOL, EEOC, Treasury, FTC) | No | Documented API |
-| `us-sec-press` | SEC press releases RSS | US | Enforcement, rulemaking news | No (needs a User-Agent with contact) | Documented feed |
-| `us-courtlistener` | [CourtListener REST API v4](https://www.courtlistener.com/help/api/rest/) | US | Court opinions (anti-ESG, greenwashing, ERISA) | Free token | Documented API |
-| `uk-govuk` | [GOV.UK Search API](https://docs.publishing.service.gov.uk/repos/search-api/) | UK | HMT, DBT, CMA, DESNZ publications and consultations | No | Documented API |
-| `uk-parliament-bills` | [UK Parliament Bills API](https://bills-api.parliament.uk/index.html) | UK | Bill progress | No | Documented API |
-| `uk-fca-news` | FCA news RSS | UK | FCA policy and enforcement | No | **URL to confirm** |
-| `uk-boe-news` | Bank of England news RSS | UK | PRA climate / prudential | No | **URL to confirm** |
-| `eu-eurlex` | [Publications Office SPARQL (Cellar)](https://op.europa.eu/en/advanced-sparql-query-editor) | EU | Adopted and proposed EU acts (CELEX) | No | Documented API |
-| `eu-ecb-press` | ECB press RSS | EU | Climate risk supervision | No | **URL to confirm** |
-| `in-sebi` | SEBI RSS | IN | Circulars, regulations (BRSR, ESG funds, ERPs) | No | **URL to confirm** |
-| `in-rbi-press` | RBI press releases RSS | IN | Climate risk disclosure, banking | No | **URL to confirm** |
-| `br-camara` | [Câmara dos Deputados open data API](https://dadosabertos.camara.leg.br/swagger/api.html) | BR | Bills (climate, taxonomy, equal pay) | No | Documented API |
-| `news-apac-br` | [GDELT DOC 2.0 API](https://blog.gdeltproject.org/gdelt-doc-2-0-api-debuts/) | SG, JP, KR, AU, IN, CN, BR | News monitoring | No (max 1 request / 5s) | Documented API |
-| `news-litigation-enforcement` | GDELT DOC 2.0 API | Global | Litigation & enforcement news | No | Documented API |
+| Market | Regulator | Feed | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| SG | MAS | Media releases, consultations | **No RSS** | MAS offers "Subscribe to Updates" notifications on [mas.gov.sg/news](https://www.mas.gov.sg/news) |
+| SG | SGX RegCo | Regulatory announcements | **No RSS** | None found |
+| JP | FSA | What's New (English) | **No RSS** | Weekly "What's New on the FSA Website" newsletter pages only |
+| JP | SESC | Press releases (English) | **Add address** | SESC English page lists RSS 2.0 feeds: [fsa.go.jp/sesc/english](https://www.fsa.go.jp/sesc/english/index.html) |
+| KR | FSC | Press releases (English) | **No RSS** | Paginated listing at [fsc.go.kr/eng/pr020101](https://www.fsc.go.kr/eng/pr020101) |
+| KR | FSS | Press releases (English) | **No RSS** | None found |
+| AU | ASIC | Media releases | **No RSS** | Email alerts: [asic.gov.au/newsroom/subscribe](https://asic.gov.au/newsroom/subscribe) |
+| AU | APRA | Media releases | **No RSS** | None found |
+| IN | SEBI | Press releases, circulars, orders | **Confirmed** | `https://www.sebi.gov.in/sebirss.xml`, given on [sebi.gov.in/rss.html](https://www.sebi.gov.in/rss.html) |
+| IN | RBI | Press releases | To confirm | `https://rbi.org.in/pressreleases_rss.xml` (feed directories) |
+| IN | RBI | Notifications | To confirm | `https://rbi.org.in/notifications_rss.xml` (feed directories) |
+| CN | CSRC | News releases | **No RSS** | None found |
+| CN | PBoC | News releases | **No RSS** | None found |
+| US | SEC | Press releases | To confirm | `https://www.sec.gov/news/pressreleases.rss`; SEC lists its feeds at [sec.gov/about/secrss.shtml](https://www.sec.gov/about/secrss.shtml) |
+| US | SEC | Litigation releases | To confirm | `https://www.sec.gov/enforcement-litigation/litigation-releases/rss` (feed directories) |
+| US | Federal Reserve | Banking & consumer regulatory policy | **Confirmed** | `https://www.federalreserve.gov/feeds/press_bcreg.xml`, listed at [federalreserve.gov/feeds](https://www.federalreserve.gov/feeds/) |
+| BR | Banco Central do Brasil | Normativos | To confirm | `https://www.bcb.gov.br/api/feed/app/normativos/normativos` (feed directories; some copies add `?ano=YYYY`) |
+| BR | Banco Central do Brasil | Notas à imprensa | To confirm | `https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/notasImprensa` (feed directories) |
+| BR | CVM | Notícias | **No RSS** | Paginated listing only |
+| UK | FCA | News | To confirm | `https://www.fca.org.uk/news/rss.xml`. Sources conflict, and one directory says the FCA has no native feed. Fallback: FCA email alerts |
+| UK | Bank of England / PRA | News | **Confirmed** | `https://www.bankofengland.co.uk/rss/news` (hosted on bankofengland.co.uk) |
+| UK | Bank of England / PRA | Prudential regulation publications | To confirm | `https://www.bankofengland.co.uk/rss/prudential-regulation-publications` (feed directories) |
+| UK | FRC | News | **No RSS** | None found |
+| EU | ECB | Press releases | To confirm | `https://www.ecb.europa.eu/rss/press.html`; the ECB's RSS page confirms press feeds exist |
+| EU | ECB Banking Supervision | Press releases & publications | **Add address** | RSS page at [bankingsupervision.europa.eu/home/rss](https://www.bankingsupervision.europa.eu/home/rss/html/index.en.html) |
+| EU | ESMA | News | **Add address** | Feed directories carry an ESMA feed; official address not confirmed |
+| EU | EBA | News & press | **Add address** | The EBA site footer offers a "News & press RSS feed" |
+| EU | EIOPA | News | **Add address** | The EIOPA news listing shows an RSS link |
 
-"URL to confirm" means the feed address came from memory and has not been tested from a networked machine. Run `npm run feeds:check`.
-When a source works, change its `confidence` to `"documented"` in `src/feeds/sources.ts`. If it fails, find the correct address on the
-regulator's RSS page.
+**Status key:**
+- **Confirmed:** the address is shown on the regulator's own site.
+- **To confirm:** the address comes from directories or common use.
+- **Add address:** the regulator offers RSS, but the exact link wasn't captured. Copy it from the linked page into `url`.
+- **No RSS:** the regulator has no public feed. Subscribe to its email alerts instead.
 
-## Sources to add via `RSS_FEEDS` (no code needed)
+**To enable an "Add address" feed:** open the regulator's page, copy the feed link, set `url` and `status` in `src/feeds/regulators.ts`, and run
+`npm run feeds:check -- <id>`.
 
-Most of these regulators publish RSS or e-mail alerts but no API. Copy the feed URL from their website and add it to the `RSS_FEEDS` env var:
+## Official registers (also shown as regulator updates)
 
-| Market | Regulator | What to subscribe to |
-| --- | --- | --- |
-| SG | MAS | Media releases, consultation papers |
-| SG | SGX RegCo | Regulatory announcements |
-| JP | FSA Japan | "What's New" (English) |
-| AU | ASIC | Media releases (greenwashing enforcement) |
-| AU | APRA | News & publications |
-| EU | ESMA, EBA, EIOPA | News / press releases |
-| EU | European Commission (FISMA) | Sustainable finance news |
-| UK | FRC, TPR | News (Stewardship Code, pension schemes) |
-| INTL | IFRS Foundation (ISSB), BIS, IOSCO | News / press releases |
+| Id | Source | Market | Key needed |
+| --- | --- | --- | --- |
+| `us-federal-register` | [Federal Register API](https://www.federalregister.gov/developers/documentation/api/v1): SEC, DOL, EEOC, Treasury, FTC rules | US | No |
+| `uk-govuk` | [GOV.UK Search API](https://docs.publishing.service.gov.uk/repos/search-api/): HMT, DBT, CMA, DESNZ | UK | No |
+| `uk-parliament-bills` | [UK Parliament Bills API](https://bills-api.parliament.uk/index.html) | UK | No |
+| `eu-eurlex` | [EUR-Lex via Publications Office SPARQL](https://op.europa.eu/en/advanced-sparql-query-editor) | EU | No |
+| `br-camara` | [Câmara dos Deputados open data API](https://dadosabertos.camara.leg.br/swagger/api.html) | BR | No |
 
-## Official APIs reviewed but not connected
+## Other connectors (API only, not shown on pages)
 
-| Source | Why it isn't connected |
-| --- | --- |
-| Regulations.gov API (US) | Needs an api.data.gov key; the Federal Register already covers final and proposed rules |
-| SEC EDGAR (US) | Company filings, not regulatory developments. Useful later for issuer-level climate disclosures |
-| legislation.gov.uk Atom feeds (UK) | The "new legislation" feed is very high volume; Bills API + GOV.UK cover it with less noise |
-| European Parliament Open Data API (EU) | Overlaps with EUR-Lex; consider adding for procedure tracking (e.g. Omnibus, SFDR 2.0) |
-| Australian Federal Register of Legislation API | Covers all legislation, not just ESG; could be added with keyword filters |
-| e-Gov Laws API (Japan) | Japanese-language statute text; consolidated law, not news of changes |
-| National Law Information Center Open API (Korea) | Needs registration (OC key); Korean-language |
-| Senado Federal open data (Brazil) | Can sit next to the Câmara connector for full bill coverage |
-| CVM open data portal (Brazil, CKAN) | Datasets (fund registers, filings) rather than regulatory news |
-| China (CSRC, MOF, PBoC, exchanges) | No public APIs or reliable feeds. Covered through GDELT news; scraping not recommended |
-| Climate Policy Radar / Climate Change Laws of the World | Excellent for litigation and climate laws; check their current API/data licence before integrating |
-| Sabin Center Climate Case Chart | No public API; monitor manually or via the litigation news query |
-
-## Commercial options (for fuller coverage)
-
-If you need full coverage of all ten markets with expert summaries, look at paid regulatory-intelligence services. These include
-Thomson Reuters Regulatory Intelligence, LexisNexis Regulatory Compliance, FiscalNote, Wolters Kluwer, Cube, Responsibility/ESG Book-type
-data providers, and law-firm trackers. Most of them offer APIs. Connecting one would mean adding one connector in `src/feeds/connectors/apis.ts`.
+GDELT news monitoring (`news-apac-br`, `news-litigation-enforcement`) and CourtListener court opinions (`us-courtlistener`, needs a free
+token) are still in `src/feeds/sources.ts`. They are only available through `/api/feed`, because they are news and court data, not
+regulator publications.
 
 ## Operating notes
 
-- **Caching:** `/x/feed` is regenerated at most hourly, and each upstream response is cached for an hour.
-- **Configuration:** see `.env.example` (`FEED_CONTACT_EMAIL`, `FEED_LOOKBACK_DAYS`, `COURTLISTENER_TOKEN`, `RSS_FEEDS`).
-- **Relevance tuning:** keyword rules are in `src/feeds/classify.ts`. Change them when a source is too noisy or too quiet.
-- **Health check:** `npm run feeds:check` exits non-zero if any enabled source fails, so it can run on a schedule in CI.
-- **Offline test:** `npm run test:feeds` checks parsing, filtering, de-duplication and error isolation against stubbed responses.
-- **Terms of use:** each source has its own terms. GDELT links to third-party news articles, so check your firm's policy on storing them.
+- **Caching:** pages with regulator updates regenerate at most hourly, and each upstream response is cached for an hour.
+- **Configuration:** see `.env.example` (`FEED_CONTACT_EMAIL`, a generic team mailbox for the User-Agent the SEC requires;
+  `FEED_LOOKBACK_DAYS`; `COURTLISTENER_TOKEN`; `RSS_FEEDS` for extra feeds without code changes).
+- **Relevance tuning:** keyword rules are in `src/feeds/classify.ts`.
+- **Health check:** `npm run feeds:check` exits non-zero if any enabled source fails.
+- **Offline test:** `npm run test:feeds`.

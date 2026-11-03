@@ -13,6 +13,9 @@ const rssDate = new Date().toUTCString();
 
 const FIXTURES: [RegExp, () => unknown][] = [
   [/federalregister\.gov/, () => ({ results: [{ document_number: "2026-1", title: "Investment Company Names — ESG terms", html_url: "https://www.federalregister.gov/d/2026-1", publication_date: today, abstract: "Rule on fund names", type: "Rule", agencies: [{ name: "Securities and Exchange Commission" }] }] })],
+  [/sec\.gov\/enforcement-litigation/, () => `<rss><channel><item><title>SEC v. Example Adviser — ESG misstatements</title><link>https://www.sec.gov/lit/1</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
+  [/federalreserve\.gov/, () => `<rss><channel><item><title>Agencies withdraw climate-related financial risk principles</title><link>https://www.federalreserve.gov/a</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
+  [/bcb\.gov\.br/, () => `<rss><channel><item><title>Resolução CMN sobre riscos sociais, ambientais e climáticos (climate risk)</title><link>https://www.bcb.gov.br/a</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
   [/sec\.gov\/news\/pressreleases\.rss/, () => `<?xml version="1.0"?><rss version="2.0"><channel><title>SEC</title>
      <item><title>SEC Charges Adviser for Misleading ESG Claims</title><link>https://www.sec.gov/newsroom/press-releases/2026-99</link><pubDate>${rssDate}</pubDate><description>Greenwashing penalty of $5m</description></item>
      <item><title>SEC Announces Agenda for Small Business Forum</title><link>https://www.sec.gov/x</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
@@ -58,6 +61,14 @@ async function main() {
   assert.equal(by["us-sec-press"].fetched, 2);
   assert.equal(by["us-sec-press"].count, 1, "irrelevant SEC item filtered out");
   assert.equal(by["in-rbi-press"].count, 0, "irrelevant RBI item filtered out");
+  assert.equal(by["in-sebi"].count, 1, "SEBI ESG item kept");
+  assert.equal(by["us-fed-bcreg"].count, 1);
+  assert.equal(by["uk-pra-publications"].ok, false, "second BoE feed also reported failed");
+
+  // Scope filters used by the Overview / market pages / briefing pack
+  const uk = await aggregate({ jurisdictions: ["UK"], kinds: ["Regulator news"] });
+  assert.ok(uk.sources.length > 0 && uk.sources.every((s) => s.jurisdiction === "UK" && s.kind === "Regulator news"));
+  assert.ok(uk.items.every((i) => i.jurisdiction === "UK"));
 
   const titles = res.items.map((i) => i.title);
   assert.ok(titles.includes("Regulation on ESG rating activities"));

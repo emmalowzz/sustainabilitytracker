@@ -280,6 +280,12 @@ a.cell:hover { outline: 2px solid var(--navy-2); color: inherit; }
 .prose ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
+/* ── Themed data table (on-screen pages) ── */
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table th { text-align: left; background: var(--navy); color: #fff; font-weight: 600; padding: 7px 10px; }
+.data-table td { border-bottom: 1px solid var(--border); padding: 7px 10px; vertical-align: top; }
+.data-table tr:nth-child(even) td { background: var(--surface-2); }
+
 /* ─────────────────────────── Briefing pack builder ─────────────────────────── */
 .builder { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 20px; align-items: start; }
 .builder > * { min-width: 0; }

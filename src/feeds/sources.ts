@@ -10,6 +10,7 @@
 import type { JurisdictionCode } from "@/lib/taxonomy";
 import type { RawItem, Source } from "./types";
 import { parseFeed } from "./connectors/rss";
+import { POLLABLE_FEEDS } from "./regulators";
 import { camaraBills, courtListener, eurlexSparql, federalRegister, gdelt, govukSearch, ukBills } from "./connectors/apis";
 
 export type Confidence = "documented" | "likely";
@@ -43,7 +44,15 @@ async function gdeltByCountry(ctx: Parameters<Source["fetch"]>[0], query: string
 
 const APAC_BR_COUNTRIES = "(sourcecountry:singapore OR sourcecountry:japan OR sourcecountry:southkorea OR sourcecountry:australia OR sourcecountry:india OR sourcecountry:china OR sourcecountry:brazil)";
 
+/** Regulator RSS feeds (see regulators.ts for the full list, including regulators without feeds). */
+const REGULATOR_SOURCES: RegisteredSource[] = POLLABLE_FEEDS.map((f) => ({
+  ...rss(f.id, `${f.regulator} — ${f.feed}`, f.jurisdiction, f.url!, f.status === "official" ? "documented" : "likely"),
+  docs: f.page,
+}));
+
 export const SOURCES: RegisteredSource[] = [
+  ...REGULATOR_SOURCES,
+
   // ── United States
   {
     id: "us-federal-register",
@@ -59,7 +68,6 @@ export const SOURCES: RegisteredSource[] = [
         ["securities-and-exchange-commission", "employee-benefits-security-administration", "equal-employment-opportunity-commission", "treasury-department", "federal-trade-commission"],
       ),
   },
-  rss("us-sec-press", "SEC press releases", "US", "https://www.sec.gov/news/pressreleases.rss", "documented"),
   {
     id: "us-courtlistener",
     name: "CourtListener (US federal & state opinions)",
@@ -99,8 +107,6 @@ export const SOURCES: RegisteredSource[] = [
     prefiltered: true,
     fetch: (ctx) => ukBills(ctx, ["climate", "sustainab", "employment rights", "modern slavery", "pension", "company"]),
   },
-  rss("uk-fca-news", "FCA news", "UK", "https://www.fca.org.uk/news/rss.xml", "likely"),
-  rss("uk-boe-news", "Bank of England / PRA news", "UK", "https://www.bankofengland.co.uk/rss/news", "likely"),
 
   // ── European Union
   {
@@ -113,11 +119,6 @@ export const SOURCES: RegisteredSource[] = [
     prefiltered: true,
     fetch: eurlexSparql,
   },
-  rss("eu-ecb-press", "ECB press releases", "EU", "https://www.ecb.europa.eu/rss/press.html", "likely"),
-
-  // ── India
-  rss("in-sebi", "SEBI updates", "IN", "https://www.sebi.gov.in/sebirss.xml", "likely"),
-  rss("in-rbi-press", "RBI press releases", "IN", "https://www.rbi.org.in/pressreleases_rss.xml", "likely"),
 
   // ── Brazil
   {

@@ -3,6 +3,10 @@ import { CONTENT_AS_OF, DEVELOPMENTS } from "@/data";
 import DevCard from "@/components/DevCard";
 import Heatmap from "@/components/Heatmap";
 import Upcoming from "@/components/Upcoming";
+import RegulatorUpdates from "@/components/RegulatorUpdates";
+
+// Regulator feeds are refreshed at most hourly.
+export const revalidate = 3600;
 import { PRIORITY_CODES, TOPICS } from "@/lib/taxonomy";
 import { sortDevs } from "@/lib/query";
 
@@ -92,6 +96,8 @@ export default function OverviewPage() {
               <Upcoming limit={8} />
             </div>
           </section>
+
+          <RegulatorUpdates limit={6} />
 
           <section className="panel">
             <div className="panel-head">

@@ -1,6 +1,7 @@
 import { CONTENT_AS_OF, LAST_REVIEWED } from "@/data";
 import { Legend } from "@/components/Heatmap";
-import { TOPICS } from "@/lib/taxonomy";
+import { JURISDICTIONS, TOPICS } from "@/lib/taxonomy";
+import { REGULATOR_FEEDS, STATUS_LABEL } from "@/feeds/regulators";
 import { formatDate } from "@/lib/query";
 
 export const metadata = { title: "Methodology · Sustainability Tracker" };
@@ -56,6 +57,50 @@ export default function AboutPage() {
           <li><strong>Limited</strong> — little activity tracked.</li>
           <li><strong>Retreating</strong> — rules withdrawn, rolled back or no longer pursued.</li>
         </ul>
+
+        <h2 id="regulator-feeds">Regulator feeds</h2>
+        <p>
+          Regulator updates on the Overview, market pages and briefing packs come from the RSS feeds below, plus official registers (US Federal
+          Register, GOV.UK, UK Parliament Bills, EUR-Lex, Brazil&rsquo;s Câmara). Items are kept only if they match sustainability keywords.
+          Many regulators in Asia-Pacific publish email alerts instead of RSS; their pages are linked so the team can subscribe directly.
+        </p>
+        <ul>
+          <li><strong>Confirmed</strong> — feed address shown on the regulator&rsquo;s own site.</li>
+          <li><strong>To confirm</strong> — address from feed directories or common use; check with <code>npm run feeds:check</code>.</li>
+          <li><strong>Add address</strong> — the regulator offers RSS; copy the address from its page into <code>src/feeds/regulators.ts</code>.</li>
+          <li><strong>No RSS</strong> — no public feed found; use the regulator&rsquo;s email alerts or web listing.</li>
+        </ul>
+        <div style={{ overflowX: "auto" }}>
+          <table className="data-table" style={{ minWidth: 560 }}>
+            <thead>
+              <tr>
+                <th>Market</th>
+                <th>Regulator</th>
+                <th>Feed</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {REGULATOR_FEEDS.map((f) => (
+                <tr key={f.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    {JURISDICTIONS.find((j) => j.code === f.jurisdiction)?.flag} {f.jurisdiction}
+                  </td>
+                  <td>
+                    <a href={f.page} target="_blank" rel="noopener noreferrer" style={{ color: "var(--link)", textDecoration: "underline" }}>
+                      {f.regulator}
+                    </a>
+                  </td>
+                  <td>
+                    {f.feed}
+                    {f.note && <div className="small muted">{f.note}</div>}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>{STATUS_LABEL[f.status]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <h2>Adding or updating a development</h2>
         <p>
