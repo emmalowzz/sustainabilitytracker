@@ -2,16 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { JURISDICTIONS, TOPICS } from "@/lib/taxonomy";
 
-const MAIN = [
-  { href: "/x/overview", label: "Overview" },
-  { href: "/x/developments", label: "Developments" },
-  { href: "/x/timeline", label: "Timeline & deadlines" },
-  { href: "/x/jurisdictions", label: "Jurisdictions" },
-  { href: "/x/about", label: "Methodology" },
-];
+// ── Minimal stroke icons (24px grid), coloured with currentColor
+const ICONS = {
+  overview: "M3 13h8V3H3zM13 21h8v-8h-8zM3 21h8v-6H3zM13 3v8h8V3z",
+  developments: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01",
+  timeline: "M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z",
+  markets: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20",
+  briefing: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h5",
+  info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-4M12 8h.01",
+  chevron: "M9 18l6-6-6-6",
+} as const;
+
+function Icon({ name, size = 17 }: { name: keyof typeof ICONS; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={ICONS[name]} />
+    </svg>
+  );
+}
 
 export function LeafIcon({ size = 20 }: { size?: number }) {
   return (
@@ -22,14 +33,44 @@ export function LeafIcon({ size = 20 }: { size?: number }) {
   );
 }
 
+const MAIN = [
+  { href: "/x/overview", label: "Overview", icon: "overview" },
+  { href: "/x/developments", label: "Developments", icon: "developments" },
+  { href: "/x/timeline", label: "Timeline", icon: "timeline" },
+  { href: "/x/jurisdictions", label: "Markets", icon: "markets" },
+] as const;
+
+function Section({ title, open, onToggle, children }: { title: string; open: boolean; onToggle: () => void; children: React.ReactNode }) {
+  return (
+    <div className="side-section">
+      <button className={`side-section-head ${open ? "open" : ""}`} onClick={onToggle} aria-expanded={open}>
+        <span>{title}</span>
+        <Icon name="chevron" size={14} />
+      </button>
+      {open && <div className="side-section-body">{children}</div>}
+    </div>
+  );
+}
+
 export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
+  const onTopic = path.startsWith("/x/topics/");
+  const onMarket = path.startsWith("/x/jurisdictions/");
+  const [topicsOpen, setTopicsOpen] = useState(onTopic);
+  const [marketsOpen, setMarketsOpen] = useState(true);
+
+  // Expand the group containing the current page when navigating into it.
+  useEffect(() => {
+    if (onTopic) setTopicsOpen(true);
+    if (onMarket) setMarketsOpen(true);
+  }, [onTopic, onMarket]);
+
   const isActive = (href: string) => path === href || (href !== "/x/overview" && path.startsWith(href + "/"));
   const close = () => setOpen(false);
 
   const brand = (
-    <div className="brand">
+    <Link href="/x/overview" className="brand" onClick={close}>
       <div className="brand-mark">
         <LeafIcon />
       </div>
@@ -37,7 +78,7 @@ export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
         <div className="brand-name">Sustainability Tracker</div>
         <div className="brand-sub">ESG regulatory intelligence</div>
       </div>
-    </div>
+    </Link>
   );
 
   return (
@@ -49,49 +90,68 @@ export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
         </button>
       </div>
       <aside className={`sidebar ${open ? "open" : ""}`}>
-        {open && (
-          <button className="btn" style={{ alignSelf: "flex-end" }} onClick={close}>
-            Close
-          </button>
-        )}
-        {brand}
+        <div className="side-top">
+          {brand}
+          {open && (
+            <button className="btn" onClick={close}>
+              Close
+            </button>
+          )}
+        </div>
 
-        <Link href="/x/briefing" className={`nav-link feature ${isActive("/x/briefing") ? "active" : ""}`} onClick={close}>
+        <Link href="/x/briefing" className={`side-cta ${isActive("/x/briefing") ? "active" : ""}`} onClick={close}>
+          <Icon name="briefing" />
           <span>Build briefing pack</span>
-          <span aria-hidden>→</span>
         </Link>
 
-        <nav className="nav-group" aria-label="Main">
+        <nav className="side-nav" aria-label="Main">
           {MAIN.map((n) => (
-            <Link key={n.href} href={n.href} className={`nav-link ${isActive(n.href) ? "active" : ""}`} onClick={close}>
+            <Link key={n.href} href={n.href} className={`side-link ${isActive(n.href) && !(n.href === "/x/jurisdictions" && onMarket) ? "active" : ""}`} onClick={close}>
+              <Icon name={n.icon} />
               {n.label}
             </Link>
           ))}
         </nav>
 
-        <nav className="nav-group" aria-label="Topics">
-          <div className="nav-label">Topics</div>
-          {TOPICS.map((t) => (
-            <Link key={t.id} href={`/x/topics/${t.id}`} className={`nav-link ${path === `/x/topics/${t.id}` ? "active" : ""}`} onClick={close}>
-              <span className="nav-dot" style={{ background: t.color }} />
-              {t.short}
-            </Link>
-          ))}
-        </nav>
+        <div className="side-divider" />
 
-        <nav className="nav-group" aria-label="Markets">
-          <div className="nav-label">Markets</div>
-          {JURISDICTIONS.map((j) => (
-            <Link key={j.code} href={`/x/jurisdictions/${j.code}`} className={`nav-link ${path === `/x/jurisdictions/${j.code}` ? "active" : ""}`} onClick={close}>
-              <span aria-hidden>{j.flag}</span>
-              {j.name}
-            </Link>
-          ))}
-        </nav>
+        <Section title="Topics" open={topicsOpen} onToggle={() => setTopicsOpen(!topicsOpen)}>
+          <nav className="side-nav" aria-label="Topics">
+            {TOPICS.map((t) => (
+              <Link key={t.id} href={`/x/topics/${t.id}`} className={`side-link sub ${path === `/x/topics/${t.id}` ? "active" : ""}`} onClick={close}>
+                <span className="side-dot" style={{ background: t.color }} />
+                {t.short}
+              </Link>
+            ))}
+          </nav>
+        </Section>
 
-        <div className="sidebar-foot">
-          <span className="nav-dot" style={{ background: "var(--green-2)" }} />
-          Last reviewed {lastReviewed}
+        <Section title="Markets" open={marketsOpen} onToggle={() => setMarketsOpen(!marketsOpen)}>
+          <nav className="market-grid" aria-label="Markets">
+            {JURISDICTIONS.map((j) => (
+              <Link
+                key={j.code}
+                href={`/x/jurisdictions/${j.code}`}
+                className={`market-tile ${path === `/x/jurisdictions/${j.code}` ? "active" : ""}`}
+                title={j.name}
+                onClick={close}
+              >
+                <span aria-hidden>{j.flag}</span>
+                <span>{j.code}</span>
+              </Link>
+            ))}
+          </nav>
+        </Section>
+
+        <div className="side-foot">
+          <Link href="/x/about" className={`side-link ${isActive("/x/about") ? "active" : ""}`} onClick={close}>
+            <Icon name="info" />
+            Methodology
+          </Link>
+          <div className="side-meta">
+            <span className="side-dot" style={{ background: "var(--green-2)" }} />
+            Reviewed {lastReviewed}
+          </div>
         </div>
       </aside>
     </>
