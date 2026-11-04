@@ -24,7 +24,7 @@ export const TOPIC_RULES: Record<TopicId, RegExp> = {
 
 /** Any item must match at least one of these to be considered sustainability-relevant. */
 const RELEVANCE =
-  /\b(ESG|sustainab\w*|climate|green\w*|net[- ]zero|carbon|emission\w*|environmental|biodiversity|nature[- ]related|TNFD|transition plan|stewardship|corporate governance|human rights|modern slavery|forced labou?r|pay transparency|gender pay|diversity|social bond|taxonomy|greenwash\w*|ISSB|TCFD|CSRD|SFDR)\b/i;
+  /\b(ESG|sustainab\w*|climate|green\w*|net[- ]zero|carbon|emission\w*|environmental|biodiversity|nature[- ]related|TNFD|transition plan|stewardship|corporate governance|human rights|modern slavery|forced labou?r|pay transparency|gender pay|diversity|social bond|taxonomy|greenwash\w*|ISSB|TCFD|CSRD|SFDR|sustentab\w*|clim[aá]tic\w*|ambienta\w*|ASG|governan[cç]a|taxonomia|carbono|emiss[oõ]es|igualdade salarial|direitos humanos)\b/i;
 
 export function isRelevant(text: string): boolean {
   return RELEVANCE.test(text);

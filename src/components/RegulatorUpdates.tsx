@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { aggregate, OFFICIAL_KINDS } from "@/feeds/aggregate";
-import { REGULATOR_FEEDS, STATUS_LABEL } from "@/feeds/regulators";
+import { REGULATOR_FEEDS, collectionMethod } from "@/feeds/regulators";
 import { jurisdiction } from "@/lib/taxonomy";
 import { formatDate } from "@/lib/query";
 import { feedTimezone, lastScheduledRefresh, localDate, nextScheduledRefresh } from "@/feeds/schedule";
@@ -8,13 +8,13 @@ import { TopicChip } from "./DevCard";
 
 /**
  * Sustainability-relevant items from regulators' RSS feeds and official registers.
- * Server component. RSS feeds are re-downloaded on the first Friday of each month; API sources hourly.
+ * Server component. RSS feeds and website scans run on the first Friday of each month; API sources hourly.
  */
 export default async function RegulatorUpdates({ code, limit = 8 }: { code?: string; limit?: number }) {
   const result = await aggregate({ kinds: OFFICIAL_KINDS, jurisdictions: code ? [code] : undefined });
   const items = result.items.slice(0, limit);
   const ok = result.sources.filter((s) => s.ok).length;
-  const withoutFeed = REGULATOR_FEEDS.filter((f) => (!code || f.jurisdiction === code) && !f.url);
+  const withoutFeed = REGULATOR_FEEDS.filter((f) => (!code || f.jurisdiction === code) && !f.url && !f.scan);
   const today = localDate(new Date(), feedTimezone()).iso;
   const hasRss = result.sources.some((s) => s.refresh === "monthly");
   const short = (iso?: string) => (iso ? formatDate(iso.slice(0, 10)).replace(/ \d{4}$/, "") : "");
@@ -27,7 +27,7 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
           <div className="small muted">Sustainability-related items from regulator feeds, last {Math.round((Date.parse(result.generatedAt) - Date.parse(result.since)) / 86400000)} days · unreviewed</div>
           {hasRss && (
             <div className="small muted" style={{ marginTop: 2 }}>
-              RSS feeds refresh on the first Friday of each month (last {formatDate(lastScheduledRefresh(today))}, next {formatDate(nextScheduledRefresh(today))}) · official registers hourly
+              RSS feeds and regulator websites are checked on the first Friday of each month (last {formatDate(lastScheduledRefresh(today))}, next {formatDate(nextScheduledRefresh(today))}) · official registers hourly
             </div>
           )}
         </div>
@@ -36,7 +36,7 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
         {items.length === 0 ? (
           <p className="small muted">
             {result.sources.length === 0
-              ? "No regulator in this market publishes an RSS feed — see the regulator pages below."
+              ? "No regulator sources are configured for this market."
               : ok === 0
                 ? "Regulator feeds could not be reached when this page was generated."
                 : "No sustainability-related items in the feeds for this period."}
@@ -68,7 +68,7 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
         <details style={{ marginTop: 12 }}>
           <summary className="small" style={{ cursor: "pointer", color: "var(--link)" }}>
             Feed status: {ok} of {result.sources.length} responding
-            {withoutFeed.length > 0 && ` · ${withoutFeed.length} regulator${withoutFeed.length === 1 ? "" : "s"} without a usable feed`}
+            {withoutFeed.length > 0 && ` · ${withoutFeed.length} regulator${withoutFeed.length === 1 ? "" : "s"} monitored manually`}
           </summary>
           <div style={{ display: "grid", gap: 6, marginTop: 8 }}>
             {result.sources.map((s) => (
@@ -80,18 +80,20 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
                 <span className="muted" title={s.error ?? s.skipped} style={{ whiteSpace: "nowrap" }}>
                   {s.ok ? `${s.count} relevant` : s.skipped ? "off" : "unreachable"}
                   {" · "}
-                  {s.refresh === "monthly" ? (s.fetchedAt ? `RSS, fetched ${short(s.fetchedAt)}` : "RSS, monthly") : "API, hourly"}
+                  {s.refresh === "monthly"
+                    ? `${s.kind === "Regulator website" ? "site scan" : "RSS"}, ${s.fetchedAt ? `checked ${short(s.fetchedAt)}` : "monthly"}`
+                    : "API, hourly"}
                 </span>
               </div>
             ))}
             {withoutFeed.map((f) => (
               <div key={f.id} className="small" style={{ display: "grid", gridTemplateColumns: "10px 1fr auto", gap: 8, alignItems: "baseline" }}>
                 <span className="nav-dot" style={{ background: "var(--muted)" }} />
-                <a href={f.page} target="_blank" rel="noopener noreferrer" title={f.note ?? f.evidence}>
+                <a href={f.page} target="_blank" rel="noopener noreferrer" title={f.note}>
                   {f.regulator}
                 </a>
                 <span className="muted" style={{ whiteSpace: "nowrap" }}>
-                  {STATUS_LABEL[f.status]}
+                  {collectionMethod(f)}
                 </span>
               </div>
             ))}

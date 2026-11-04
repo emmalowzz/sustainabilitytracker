@@ -61,7 +61,7 @@ export interface AggregateOptions {
 }
 
 /** Official channels only: regulator feeds, official registers and legislatures (no news monitoring or court search). */
-export const OFFICIAL_KINDS: SourceKind[] = ["Regulator news", "Official register", "Legislature"];
+export const OFFICIAL_KINDS: SourceKind[] = ["Regulator news", "Regulator website", "Official register", "Legislature"];
 
 export async function aggregate(opts: AggregateOptions = {}): Promise<FeedResult> {
   const days = opts.lookbackDays ?? Number(process.env.FEED_LOOKBACK_DAYS ?? 60);

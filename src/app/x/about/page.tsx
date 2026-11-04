@@ -1,8 +1,6 @@
-import { CONTENT_AS_OF, LAST_REVIEWED } from "@/data";
 import { Legend } from "@/components/Heatmap";
 import { JURISDICTIONS, TOPICS } from "@/lib/taxonomy";
-import { REGULATOR_FEEDS, STATUS_LABEL } from "@/feeds/regulators";
-import { formatDate } from "@/lib/query";
+import { REGULATOR_FEEDS, collectionMethod } from "@/feeds/regulators";
 
 export const metadata = { title: "Methodology · Sustainability Tracker" };
 
@@ -12,7 +10,7 @@ export default function AboutPage() {
       <div className="page-head">
         <div>
           <div className="eyebrow">Methodology</div>
-          <h1>Scope, definitions & maintenance</h1>
+          <h1>Scope & definitions</h1>
         </div>
       </div>
       <div className="panel panel-body prose">
@@ -23,9 +21,8 @@ export default function AboutPage() {
           headline counts.
         </p>
         <p>
-          Content was seeded from developments known as of {CONTENT_AS_OF} and last reviewed on {formatDate(LAST_REVIEWED)}. Anything after that
-          date must be added by the team. Every item links to a primary or authoritative source; always confirm the current position there before
-          relying on it. This tracker is a monitoring aid and does not constitute legal advice.
+          Every item links to a primary or authoritative source; always confirm the current position there before relying on it. This tracker is a
+          monitoring aid and does not constitute legal advice.
         </p>
 
         <h2>Topics</h2>
@@ -43,7 +40,7 @@ export default function AboutPage() {
           indirectly (portfolio-company data, stewardship, litigation exposure). Where an obligation depends on holding a licence or authorisation in
           that market (e.g., MAS-licensed fund managers, FCA-authorised firms), the &ldquo;What it means for us&rdquo; note flags it. As the firm is
           not financially licensed in its operating jurisdictions, treat such items as best-practice benchmarks or client-driven expectations unless
-          a group entity, fund or distribution activity brings it into scope — confirm entity scoping with Legal.
+          a group entity, fund or distribution activity brings it into scope.
         </p>
 
         <h2>Posture levels (heatmap)</h2>
@@ -58,26 +55,38 @@ export default function AboutPage() {
           <li><strong>Retreating</strong> — rules withdrawn, rolled back or no longer pursued.</li>
         </ul>
 
-        <h2 id="regulator-feeds">Regulator feeds</h2>
+        <h2 id="regulator-feeds">Regulator monitoring</h2>
         <p>
-          Regulator updates on the Overview, market pages and briefing packs come from the RSS feeds below, plus official registers (US Federal
-          Register, GOV.UK, UK Parliament Bills, EUR-Lex, Brazil&rsquo;s Câmara). Items are kept only if they match sustainability keywords. <strong>Refresh schedule:</strong> RSS feeds are re-downloaded on the <strong>first Friday of each month</strong> (Singapore time by default); the official register APIs refresh hourly.
-          Many regulators in Asia-Pacific publish email alerts instead of RSS; their pages are linked so the team can subscribe directly.
+          The <strong>Regulator updates</strong> shown on the Overview, on each market page and in briefing packs are collected automatically and
+          kept only if they relate to sustainability. They have not been reviewed; material items are added to the tracked developments after
+          review.
         </p>
         <ul>
-          <li><strong>Confirmed</strong> — feed address shown on the regulator&rsquo;s own site.</li>
-          <li><strong>To confirm</strong> — address from feed directories or common use; check with <code>npm run feeds:check</code>.</li>
-          <li><strong>Add address</strong> — the regulator offers RSS; copy the address from its page into <code>src/feeds/regulators.ts</code>.</li>
-          <li><strong>No RSS</strong> — no public feed found; use the regulator&rsquo;s email alerts or web listing.</li>
+          <li>
+            <strong>RSS feed</strong> — the regulator&rsquo;s own news feed. &ldquo;Being verified&rdquo; means the feed address is still being
+            confirmed.
+          </li>
+          <li>
+            <strong>Website scan</strong> — where a regulator publishes no usable feed, its news or press-release page is read and new
+            announcements are picked up. Each site&rsquo;s published crawling rules are respected.
+          </li>
+          <li>
+            <strong>Official registers</strong> — the US Federal Register, GOV.UK, UK Parliament Bills, EUR-Lex and Brazil&rsquo;s Chamber of
+            Deputies.
+          </li>
         </ul>
+        <p>
+          <strong>Schedule:</strong> RSS feeds and website scans are checked on the <strong>first Friday of each month</strong> (Singapore time).
+          Official registers are checked hourly.
+        </p>
         <div style={{ overflowX: "auto" }}>
           <table className="data-table" style={{ minWidth: 560 }}>
             <thead>
               <tr>
                 <th>Market</th>
                 <th>Regulator</th>
-                <th>Feed</th>
-                <th>Status</th>
+                <th>Coverage</th>
+                <th>Collection</th>
               </tr>
             </thead>
             <tbody>
@@ -87,30 +96,17 @@ export default function AboutPage() {
                     {JURISDICTIONS.find((j) => j.code === f.jurisdiction)?.flag} {f.jurisdiction}
                   </td>
                   <td>
-                    <a href={f.page} target="_blank" rel="noopener noreferrer" style={{ color: "var(--link)", textDecoration: "underline" }}>
+                    <a href={f.scan?.url ?? f.page} target="_blank" rel="noopener noreferrer" style={{ color: "var(--link)", textDecoration: "underline" }}>
                       {f.regulator}
                     </a>
                   </td>
-                  <td>
-                    {f.feed}
-                    {f.note && <div className="small muted">{f.note}</div>}
-                  </td>
-                  <td style={{ whiteSpace: "nowrap" }}>{STATUS_LABEL[f.status]}</td>
+                  <td>{f.feed}</td>
+                  <td style={{ whiteSpace: "nowrap" }}>{collectionMethod(f)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-
-        <h2>Adding or updating a development</h2>
-        <p>
-          Developments live in <code>src/data/</code> (one file per region). Add an object to the relevant market array with an <code>id</code>,
-          <code>title</code>, <code>jurisdiction</code>, one or more <code>topics</code> (the first is the primary topic), <code>type</code>,
-          <code>status</code>, <code>authority</code>, <code>date</code> (latest milestone, <code>YYYY-MM</code> or <code>YYYY-MM-DD</code>),
-          <code>summary</code>, optional <code>implications</code> and <code>keyDates</code>, <code>appliesTo</code>, <code>impact</code> and
-          <code>sources</code>. Update the market&rsquo;s posture in <code>src/data/profiles.ts</code> and bump <code>LAST_REVIEWED</code> in
-          <code>src/data/index.ts</code>. TypeScript validates every field at build time.
-        </p>
       </div>
     </>
   );

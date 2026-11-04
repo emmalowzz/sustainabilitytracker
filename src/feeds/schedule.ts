@@ -1,14 +1,15 @@
 /**
  * Refresh schedule for feed sources.
  *
- * - RSS feeds (regulator feeds and any RSS_FEEDS extras) are cached indefinitely and refreshed only on the
- *   FIRST FRIDAY OF EACH MONTH, via the scheduled job that calls /api/cron/refresh-rss.
+ * - RSS feeds (regulator feeds and any RSS_FEEDS extras) and regulator WEBSITE SCANS (for regulators without
+ *   a usable feed) are cached indefinitely and refreshed only on the FIRST FRIDAY OF EACH MONTH, via the
+ *   scheduled job that calls /api/cron/refresh-rss.
  * - API sources (Federal Register, GOV.UK, UK Parliament Bills, EUR-Lex, Câmara, …) refresh hourly.
  *
  * "First Friday" is evaluated in FEED_TIMEZONE (default Asia/Singapore).
  */
 
-/** Cache tag shared by every RSS fetch; clearing it forces all RSS feeds to be re-fetched. */
+/** Cache tag shared by every monthly fetch (RSS feeds, website scans, robots.txt); clearing it forces a re-fetch. */
 export const RSS_CACHE_TAG = "regulator-rss";
 
 /** Hourly refresh for API sources. */

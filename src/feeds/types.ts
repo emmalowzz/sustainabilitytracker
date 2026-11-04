@@ -18,7 +18,7 @@ export interface FeedItem {
   kind: SourceKind;
 }
 
-export type SourceKind = "Official register" | "Regulator news" | "Legislature" | "Court records" | "News monitoring";
+export type SourceKind = "Official register" | "Regulator news" | "Regulator website" | "Legislature" | "Court records" | "News monitoring";
 
 export interface SourceStatus {
   id: string;
@@ -75,6 +75,6 @@ export interface FetchContext {
   since: string;
   fetchText: (url: string, init?: RequestInit) => Promise<string>;
   fetchJSON: <T = unknown>(url: string, init?: RequestInit) => Promise<T>;
-  /** Fetch an RSS/Atom feed: cached until the next first-Friday refresh. */
+  /** Fetch on the monthly schedule (RSS feeds, website scans): cached until the next first-Friday refresh. */
   fetchFeed: (url: string) => Promise<string>;
 }

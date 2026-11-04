@@ -11,6 +11,7 @@
  * Last researched: Nov 2026.
  */
 import type { JurisdictionCode } from "@/lib/taxonomy";
+import type { ScanConfig } from "./connectors/scan";
 
 export type FeedStatus = "official" | "reported" | "available" | "none";
 
@@ -26,6 +27,11 @@ export interface RegulatorFeed {
   page: string;
   evidence?: string;
   note?: string;
+  /**
+   * Website scan used when there is no usable RSS address: the listing page is read on the same
+   * first-Friday schedule. `verified` = the article URL pattern was seen in published URLs for that site.
+   */
+  scan?: ScanConfig & { verified: boolean };
 }
 
 export const REGULATOR_FEEDS: RegulatorFeed[] = [
@@ -38,6 +44,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.mas.gov.sg/news",
     note: "MAS offers 'Subscribe to Updates' notifications on its news pages rather than a public RSS feed.",
+    scan: { url: "https://www.mas.gov.sg/news", include: /^\/(news|publications)\/[a-z-]+\/20\d{2}\/[^/?#]+$/, verified: true },
   },
   {
     id: "sg-sgx-regco",
@@ -47,6 +54,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.sgx.com/regulation",
     note: "No public RSS feed found.",
+    scan: { url: "https://www.sgx.com/regulation/regulatory-announcements", include: /^\/regulation\/[a-z0-9-]+\/[a-z0-9-]{12,}$/, verified: false },
   },
 
   // ── Japan
@@ -58,6 +66,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.fsa.go.jp/en/newsletter/index.html",
     note: "No English RSS feed found; the FSA publishes a weekly 'What's New on the FSA Website' newsletter page.",
+    scan: { url: "https://www.fsa.go.jp/en/index.html", include: /^\/en\/(news|refer|policy)\/.+\.html$/, verified: false },
   },
   {
     id: "jp-sesc",
@@ -67,6 +76,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "available",
     page: "https://www.fsa.go.jp/sesc/english/index.html",
     evidence: "SESC English 'What's New' page lists RSS 2.0 feeds for press releases and publications.",
+    scan: { url: "https://www.fsa.go.jp/sesc/english/index.html", include: /^\/sesc\/english\/(news|reports|aboutsesc)\/.+\.(html?|pdf)$/, verified: false },
   },
 
   // ── South Korea
@@ -78,6 +88,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.fsc.go.kr/eng/pr020101",
     note: "No RSS feed found; English press releases are a paginated web listing.",
+    scan: { url: "https://www.fsc.go.kr/eng/pr020101", include: /^\/eng\/pr020101\/\d+/, verified: true },
   },
   {
     id: "kr-fss",
@@ -87,6 +98,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.fss.or.kr/eng/main/main.do",
     note: "No public RSS feed found.",
+    scan: { url: "https://www.fss.or.kr/eng/main/main.do", include: /^\/eng\/bbs\/B\d+\/view\.do/, verified: false },
   },
 
   // ── Australia
@@ -98,6 +110,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://asic.gov.au/newsroom/subscribe",
     note: "ASIC offers email news alerts (enforcement outcomes, policy updates) rather than an RSS feed.",
+    scan: { url: "https://asic.gov.au/newsroom/media-releases/", include: /media-releases?\/.*\d{2}-\d{2,3}mr/i, verified: false },
   },
   {
     id: "au-apra",
@@ -107,6 +120,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.apra.gov.au/news-and-publications",
     note: "No public RSS feed found.",
+    scan: { url: "https://www.apra.gov.au/news-and-publications", include: /^\/news-and-publications\/[a-z0-9-]{15,}$/, verified: true },
   },
 
   // ── India
@@ -150,6 +164,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "http://www.csrc.gov.cn/csrc_en/",
     note: "No public RSS feed found.",
+    scan: { url: "http://www.csrc.gov.cn/csrc_en/", include: /^\/csrc_en\/c\d+\/c\d+\/content\.shtml$/, verified: false },
   },
   {
     id: "cn-pboc",
@@ -159,6 +174,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "http://www.pbc.gov.cn/en/",
     note: "No public RSS feed found.",
+    scan: { url: "http://www.pbc.gov.cn/en/3688110/index.html", include: /^\/en\/3688110\/\d+\/\d+\/index\.html$/, verified: false },
   },
 
   // ── United States
@@ -223,6 +239,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.gov.br/cvm/pt-br/assuntos/noticias",
     note: "No RSS feed found; news is a paginated web listing.",
+    scan: { url: "https://www.gov.br/cvm/pt-br/assuntos/noticias", include: /^\/cvm\/pt-br\/assuntos\/noticias\/20\d{2}\/[^/?#]+\/?$/, verified: true },
   },
 
   // ── United Kingdom
@@ -265,6 +282,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "none",
     page: "https://www.frc.org.uk/news-and-events/news/",
     note: "No public RSS feed found.",
+    scan: { url: "https://www.frc.org.uk/news-and-events/news/", include: /^\/news-and-events\/news\/20\d{2}\/\d{2}\/[^/?#]+\/?$/, verified: false },
   },
 
   // ── European Union
@@ -286,6 +304,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "available",
     page: "https://www.bankingsupervision.europa.eu/home/rss/html/index.en.html",
     evidence: "ECB Banking Supervision publishes an RSS page.",
+    scan: { url: "https://www.bankingsupervision.europa.eu/press/pr/html/index.en.html", include: /^\/press\/pr\/date\/20\d{2}\/html\/[^/]+\.en\.html$/, verified: false },
   },
   {
     id: "eu-esma",
@@ -295,6 +314,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "available",
     page: "https://www.esma.europa.eu/press-news/esma-news",
     evidence: "Feed directories carry an ESMA feed; official address not confirmed.",
+    scan: { url: "https://www.esma.europa.eu/press-news/esma-news", include: /^\/press-news\/esma-news\/[^/?#]+$/, verified: false },
   },
   {
     id: "eu-eba",
@@ -304,6 +324,7 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "available",
     page: "https://www.eba.europa.eu/publications-and-media",
     evidence: "EBA site footer offers a 'News & press RSS feed'.",
+    scan: { url: "https://www.eba.europa.eu/publications-and-media/press-releases", include: /^\/publications-and-media\/press-releases\/[^/?#]+$/, verified: false },
   },
   {
     id: "eu-eiopa",
@@ -313,15 +334,19 @@ export const REGULATOR_FEEDS: RegulatorFeed[] = [
     status: "available",
     page: "https://www.eiopa.europa.eu/media/news_en",
     evidence: "EIOPA news listing shows an RSS link.",
+    scan: { url: "https://www.eiopa.europa.eu/media/news_en", include: /^\/[a-z0-9-]{15,}_en$/, verified: false },
   },
 ];
 
 /** Feeds that can be polled (have an address). */
 export const POLLABLE_FEEDS = REGULATOR_FEEDS.filter((f) => f.url);
 
-export const STATUS_LABEL: Record<FeedStatus, string> = {
-  official: "Confirmed",
-  reported: "To confirm",
-  available: "Add address",
-  none: "No RSS",
-};
+/** Regulators covered by a monthly website scan instead of RSS. */
+export const SCANNED_SITES = REGULATOR_FEEDS.filter((f) => !f.url && f.scan);
+
+/** How a regulator is collected each month, in plain language (used on Methodology and in panels). */
+export function collectionMethod(f: RegulatorFeed): string {
+  if (f.url) return f.status === "official" ? "RSS feed" : "RSS feed (being verified)";
+  if (f.scan) return "Website scan";
+  return "Manual monitoring";
+}

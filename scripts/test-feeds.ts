@@ -7,13 +7,27 @@ import assert from "node:assert/strict";
 import { aggregate } from "../src/feeds/aggregate";
 import { parseFeed } from "../src/feeds/connectors/rss";
 import { suggestTopics, toISODate } from "../src/feeds/classify";
+import { extractListing, findDate, isPathAllowed, robotsDisallows } from "../src/feeds/connectors/scan";
 import { firstFridayOf, isFirstFriday, lastScheduledRefresh, nextScheduledRefresh, RSS_CACHE_TAG } from "../src/feeds/schedule";
 
 const today = new Date().toISOString().slice(0, 10);
 const rssDate = new Date().toUTCString();
+const now = new Date();
+const monthDayYear = now.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }); // e.g. "Nov 4, 2026"
+const dmY = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")}/${now.getFullYear()}`;
 
 const FIXTURES: [RegExp, () => unknown][] = [
   [/federalregister\.gov/, () => ({ results: [{ document_number: "2026-1", title: "Investment Company Names — ESG terms", html_url: "https://www.federalregister.gov/d/2026-1", publication_date: today, abstract: "Rule on fund names", type: "Rule", agencies: [{ name: "Securities and Exchange Commission" }] }] })],
+  [/fsc\.go\.kr\/robots\.txt/, () => "User-agent: *\nDisallow: /admin/\n"],
+  [/fsc\.go\.kr\/eng\/pr020101/, () => `<html><body><nav><a href="/eng/main">Home</a></nav><ul class="board">
+     <li><a href="/eng/pr020101/90001?curPage=1">FSC announces roadmap for sustainability disclosure standards</a><span class="date">${monthDayYear}</span></li>
+     <li><a href="/eng/pr020101/90000?curPage=1">Monthly household lending trends for October</a><span class="date">${monthDayYear}</span></li>
+     <li><a href="https://other.example.com/eng/pr020101/1">External ESG climate link that must be ignored</a></li></ul></body></html>`],
+  [/gov\.br\/robots\.txt/, () => { throw new Error("HTTP 404 Not Found"); }],
+  [/gov\.br\/cvm/, () => `<div><article><a href="/cvm/pt-br/assuntos/noticias/2026/cvm-edita-norma-sobre-informacoes-de-sustentabilidade"><h3>CVM edita norma sobre informações de sustentabilidade</h3></a><span>${dmY}</span></article>
+     <article><a href="/cvm/pt-br/assuntos/noticias/2026/cvm-julga-processo-administrativo">CVM julga processo administrativo sancionador</a><span>${dmY}</span></article>
+     <a href="/cvm/pt-br/assuntos/noticias?b_start:int=30">Próxima página de notícias</a></div>`],
+  [/asic\.gov\.au\/robots\.txt/, () => "User-agent: *\nDisallow: /newsroom/\n"],
   [/sec\.gov\/enforcement-litigation/, () => `<rss><channel><item><title>SEC v. Example Adviser — ESG misstatements</title><link>https://www.sec.gov/lit/1</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
   [/federalreserve\.gov/, () => `<rss><channel><item><title>Agencies withdraw climate-related financial risk principles</title><link>https://www.federalreserve.gov/a</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
   [/bcb\.gov\.br/, () => `<rss><channel><item><title>Resolução CMN sobre riscos sociais, ambientais e climáticos (climate risk)</title><link>https://www.bcb.gov.br/a</link><pubDate>${rssDate}</pubDate></item></channel></rss>`],
@@ -54,6 +68,28 @@ async function main() {
   assert.deepEqual(suggestTopics("SEC fines adviser for greenwashing"), ["enforcement"]);
   assert.ok(suggestTopics("UK Stewardship Code 2026 published").includes("governance"));
   assert.equal(parseFeed(`<rss><channel><item><title>x</title><link>u</link></item></channel></rss>`).length, 1);
+
+  // Website scanning helpers
+  assert.equal(findDate("Posted Dec 22, 2025"), "2025-12-22");
+  assert.equal(findDate("22 September 2026 | Media release"), "2026-09-22");
+  assert.equal(findDate("2026.09.22"), "2026-09-22");
+  assert.equal(findDate("Publicado 05/11/2026"), "2026-11-05");
+  assert.equal(findDate("2026年9月22日"), "2026-09-22");
+  const rules = robotsDisallows("User-agent: Googlebot\nDisallow: /\n\nUser-agent: *\nDisallow: /search\nDisallow: /*.pdf$\n");
+  assert.deepEqual(rules, ["/search", "/*.pdf$"], "uses the * group, not Googlebot's");
+  assert.equal(isPathAllowed("/news/media-releases", rules), true);
+  assert.equal(isPathAllowed("/search?q=esg", rules), false);
+  assert.equal(isPathAllowed("/files/report.pdf", rules), false);
+  const listing = extractListing(
+    `<a href="/news/media-releases/2026/mas-consults-on-transition-planning">MAS consults on transition planning guidelines</a> <span>3 Nov 2026</span>
+     <a href="/news/media-releases/2026/mas-consults-on-transition-planning">MAS consults on transition planning guidelines</a>
+     <a href="/news">News</a> <a href="/news/speeches/2026/x">Read more</a>`,
+    "https://www.mas.gov.sg/news",
+    { include: /^\/news\/[a-z-]+\/20\d{2}\/[^/?#]+$/ },
+  );
+  assert.equal(listing.length, 1, "deduplicated; nav and 'Read more' links dropped");
+  assert.equal(listing[0].date, "2026-11-03");
+  assert.equal(listing[0].url, "https://www.mas.gov.sg/news/media-releases/2026/mas-consults-on-transition-planning");
 
   // First-Friday schedule
   assert.equal(firstFridayOf(2026, 11), "2026-11-06");
@@ -96,6 +132,21 @@ async function main() {
   assert.equal(by["in-sebi"].refresh, "monthly");
   assert.equal(by["in-sebi"].fetchedAt, "2026-11-06T01:00:05.000Z", "fetch time taken from the Date header");
   assert.equal(by["us-federal-register"].refresh, "hourly");
+
+  // Website scans: run on the monthly cache, filter for relevance, honour robots.txt, report empty pages
+  assert.equal(by["kr-fsc-site"].ok, true);
+  assert.equal(by["kr-fsc-site"].refresh, "monthly");
+  assert.equal(by["kr-fsc-site"].fetched, 2, "off-site link ignored");
+  assert.equal(by["kr-fsc-site"].count, 1, "only the sustainability item kept");
+  const fsc = res.items.find((i) => i.sourceId === "kr-fsc-site")!;
+  assert.equal(fsc.jurisdiction, "KR");
+  assert.equal(fsc.date, today, "date read from the listing row");
+  assert.ok(fsc.url.startsWith("https://www.fsc.go.kr/eng/pr020101/90001"));
+  assert.equal(by["br-cvm-site"].count, 1, "Portuguese sustainability item kept, enforcement-only item dropped");
+  assert.deepEqual(seenCache.get("https://www.gov.br/cvm/pt-br/assuntos/noticias"), { revalidate: false, tags: [RSS_CACHE_TAG] }, "scan uses the monthly cache");
+  assert.equal(by["au-asic-site"].ok, false);
+  assert.match(by["au-asic-site"].error ?? "", /robots\.txt/, "robots.txt disallow respected");
+  assert.match(by["sg-mas-site"].error ?? "", /HTTP 500|0 links/, "unreachable or empty page reported, not silently ignored");
 
   // Scope filters used by the Overview / market pages / briefing pack
   const uk = await aggregate({ jurisdictions: ["UK"], kinds: ["Regulator news"] });

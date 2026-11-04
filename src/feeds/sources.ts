@@ -10,7 +10,8 @@
 import type { JurisdictionCode } from "@/lib/taxonomy";
 import type { RawItem, Source } from "./types";
 import { parseFeed } from "./connectors/rss";
-import { POLLABLE_FEEDS } from "./regulators";
+import { POLLABLE_FEEDS, SCANNED_SITES } from "./regulators";
+import { scanSite } from "./connectors/scan";
 import { camaraBills, courtListener, eurlexSparql, federalRegister, gdelt, govukSearch, ukBills } from "./connectors/apis";
 
 export type Confidence = "documented" | "likely";
@@ -50,8 +51,21 @@ const REGULATOR_SOURCES: RegisteredSource[] = POLLABLE_FEEDS.map((f) => ({
   docs: f.page,
 }));
 
+/** Website scans for regulators without a usable RSS feed (same first-Friday schedule as RSS). */
+const SCAN_SOURCES: RegisteredSource[] = SCANNED_SITES.map((f) => ({
+  id: `${f.id}-site`,
+  name: `${f.regulator} — website`,
+  jurisdiction: f.jurisdiction,
+  kind: "Regulator website",
+  docs: f.scan!.url,
+  confidence: f.scan!.verified ? "documented" : "likely",
+  refresh: "monthly",
+  fetch: (ctx) => scanSite(ctx, f.scan!),
+}));
+
 export const SOURCES: RegisteredSource[] = [
   ...REGULATOR_SOURCES,
+  ...SCAN_SOURCES,
 
   // ── United States
   {

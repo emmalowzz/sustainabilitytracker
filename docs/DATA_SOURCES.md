@@ -54,6 +54,43 @@ Researched November 2026 using web search. The feed addresses could not be fetch
 **To enable an "Add address" feed:** open the regulator's page, copy the feed link, set `url` and `status` in `src/feeds/regulators.ts`, and run
 `npm run feeds:check -- <id>`.
 
+## Regulator website scans (`src/feeds/connectors/scan.ts`)
+
+Regulators without a usable RSS address get a monthly website scan on the same first-Friday schedule. The scanner:
+- reads the regulator's news or press-release listing page
+- keeps links that match the site's article URL pattern
+- takes the date from the listing row (or from the URL)
+- applies the same sustainability relevance filter as the feeds (including Portuguese terms for Brazil)
+
+It reads one page per regulator per month, honours robots.txt, and sends the tracker's User-Agent with `FEED_CONTACT_EMAIL`. Scan configs
+live on each regulator in `src/feeds/regulators.ts` (`scan: { url, include, verified }`).
+
+| Regulator | Listing page | URL pattern |
+| --- | --- | --- |
+| MAS | mas.gov.sg/news | Seen in published URLs |
+| SGX RegCo | sgx.com/regulation/regulatory-announcements | **Unverified** |
+| FSA Japan | fsa.go.jp/en/ | **Unverified** |
+| SESC | fsa.go.jp/sesc/english/ | **Unverified** |
+| FSC Korea | fsc.go.kr/eng/pr020101 | Seen in published URLs |
+| FSS Korea | fss.or.kr/eng/ | **Unverified** |
+| ASIC | asic.gov.au/newsroom/media-releases/ | **Unverified** |
+| APRA | apra.gov.au/news-and-publications | Seen in published URLs |
+| CSRC | csrc.gov.cn/csrc_en/ | **Unverified** |
+| PBoC | pbc.gov.cn/en/ | **Unverified** |
+| CVM | gov.br/cvm/pt-br/assuntos/noticias | Seen in published URLs |
+| FRC | frc.org.uk/news-and-events/news/ | **Unverified** |
+| ESMA | esma.europa.eu/press-news/esma-news | **Unverified** |
+| EBA | eba.europa.eu/publications-and-media/press-releases | **Unverified** |
+| EIOPA | eiopa.europa.eu/media/news_en | **Unverified** |
+| ECB Banking Supervision | bankingsupervision.europa.eu/press/pr/ | **Unverified** |
+
+**Limitations:**
+- **JavaScript pages:** sites that build their listing with JavaScript return no links. The source then reports "0 links matched" and
+  needs a different listing page or manual monitoring.
+- **Layout changes:** these can also break a scan, and the status panel shows that the same way.
+- **Unverified patterns:** these were written without access to the live pages. Run `npm run feeds:check` once deployed and adjust any scan
+  that matches nothing.
+
 ## Official registers (also shown as regulator updates)
 
 | Id | Source | Market | Key needed |
@@ -74,7 +111,7 @@ regulator publications.
 
 | Source type | Refresh | How |
 | --- | --- | --- |
-| **RSS feeds** (all regulator feeds, plus any added via `RSS_FEEDS`) | **First Friday of each month** | Responses are cached indefinitely under the `regulator-rss` cache tag. A daily scheduled job calls `/api/cron/refresh-rss`. On the first Friday of the month (in `FEED_TIMEZONE`, default Asia/Singapore), the job clears the tag, and the feeds are re-downloaded on the next page view. On all other days the job does nothing. |
+| **RSS feeds** (all regulator feeds, plus any added via `RSS_FEEDS`) and **regulator website scans** | **First Friday of each month** | Responses are cached indefinitely under the `regulator-rss` cache tag. A daily scheduled job calls `/api/cron/refresh-rss`. On the first Friday of the month (in `FEED_TIMEZONE`, default Asia/Singapore), the job clears the tag, and the feeds are re-downloaded on the next page view. On all other days the job does nothing. |
 | **APIs** (Federal Register, GOV.UK, UK Parliament Bills, EUR-Lex, Câmara, GDELT, CourtListener) | Hourly | Next.js data cache, `revalidate: 3600` |
 
 - **Scheduler:** `vercel.json` registers a Vercel Cron job that runs daily at 01:00 UTC (09:00 Singapore). It runs daily rather than

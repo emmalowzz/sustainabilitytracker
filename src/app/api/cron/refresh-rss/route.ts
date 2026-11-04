@@ -2,7 +2,7 @@ import { revalidateTag } from "next/cache";
 import { feedTimezone, isFirstFriday, localDate, nextScheduledRefresh, RSS_CACHE_TAG } from "@/feeds/schedule";
 
 /**
- * Monthly RSS refresh.
+ * Monthly refresh of regulator RSS feeds and regulator website scans.
  *
  * Called once a day by the scheduler (see vercel.json). It only clears the RSS cache when today is the
  * first Friday of the month in FEED_TIMEZONE; on other days it does nothing. API sources are unaffected
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     return Response.json({ refreshed: false, reason: "Not the first Friday of the month", today, timezone: tz, nextRefresh: nextScheduledRefresh(today) });
   }
 
-  // Mark every RSS response stale with no grace period: the next request re-downloads the feeds.
+  // Mark every RSS response and website scan stale with no grace period: the next request re-downloads the feeds.
   revalidateTag(RSS_CACHE_TAG, { expire: 0 });
   return Response.json({ refreshed: true, forced: force && !due, at: now.toISOString(), today, timezone: tz, nextRefresh: nextScheduledRefresh(today) });
 }
