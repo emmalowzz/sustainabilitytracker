@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { FeedResult } from "@/feeds/aggregate";
-import { CLASSIFICATIONS, SECTIONS, buildPack, updatesFor, candidates, configFromParams, configToParams, packToMarkdown, type BriefConfig, type SectionId } from "@/lib/briefing";
+import { CLASSIFICATIONS, HORIZON_MONTHS, SECTIONS, addMonths, buildPack, horizonEnd, updatesFor, candidates, configFromParams, configToParams, packToMarkdown, type BriefConfig, type SectionId } from "@/lib/briefing";
 import { JURISDICTIONS, PRIORITY_CODES, TOPICS, type Impact } from "@/lib/taxonomy";
 import BriefingDocument from "./BriefingDocument";
 
@@ -158,15 +158,38 @@ export default function BriefingBuilder() {
             </label>
             <label className="field">
               <span>Deadlines ahead</span>
-              <select className="select" value={cfg.horizon} onChange={(e) => set("horizon", Number(e.target.value))}>
-                {[3, 6, 12, 18, 24].map((m) => (
+              <select
+                className="select"
+                value={String(cfg.horizon)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "all") setCfg({ ...cfg, horizon: "all" });
+                  else if (v === "custom") setCfg({ ...cfg, horizon: "custom", until: cfg.until ?? addMonths(today, 36) });
+                  else setCfg({ ...cfg, horizon: Number(v) });
+                }}
+              >
+                {HORIZON_MONTHS.map((m) => (
                   <option key={m} value={m}>
                     {m} months
                   </option>
                 ))}
+                <option value="all">All</option>
+                <option value="custom">Custom…</option>
               </select>
             </label>
           </div>
+          {cfg.horizon === "custom" && (
+            <label className="field" style={{ marginTop: 8 }}>
+              <span>Deadlines up to</span>
+              <input
+                className="input"
+                type="date"
+                value={horizonEnd(cfg, today)}
+                min={today}
+                onChange={(e) => e.target.value && set("until", e.target.value)}
+              />
+            </label>
+          )}
         </div>
 
         <div>

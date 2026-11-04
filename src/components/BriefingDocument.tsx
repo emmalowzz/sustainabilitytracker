@@ -1,5 +1,5 @@
 import type { Pack, SectionId } from "@/lib/briefing";
-import { addMonths, postureFor } from "@/lib/briefing";
+import { horizonEnd, postureFor } from "@/lib/briefing";
 import { jurisdiction, topic } from "@/lib/taxonomy";
 import { formatDate } from "@/lib/query";
 import type { Development, PostureLevel } from "@/lib/types";
@@ -125,7 +125,7 @@ export default function BriefingDocument({ p, updates = [], updatesNote }: { p: 
             <dd>{formatDate(p.today)}</dd>
             <dt>Period covered</dt>
             <dd>
-              Developments since {formatDate(c.since)}; deadlines to {formatDate(addMonths(p.today, c.horizon))}
+              Developments since {formatDate(c.since)}; {c.horizon === "all" ? "all upcoming deadlines" : `deadlines to ${formatDate(horizonEnd(c, p.today))}`}
             </dd>
             <dt>Markets</dt>
             <dd>{p.markets.map((m) => m.name).join(", ")}</dd>
@@ -273,7 +273,7 @@ export default function BriefingDocument({ p, updates = [], updatesNote }: { p: 
       {/* Deadlines */}
       {has("deadlines") && (
         <section className="bp-page flow">
-          <H2>Upcoming deadlines — next {c.horizon} months</H2>
+          <H2>Upcoming deadlines — {c.horizon === "all" ? "all upcoming" : c.horizon === "custom" ? `to ${formatDate(horizonEnd(c, p.today))}` : `next ${c.horizon} months`}</H2>
           {p.deadlines.length ? (
             <table className="bp-table">
               <thead>

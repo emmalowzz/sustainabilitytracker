@@ -24,7 +24,9 @@ export interface BriefConfig {
   /** Include developments whose latest milestone is on/after this date (YYYY-MM-DD). */
   since: string;
   /** Months ahead for the deadlines section (and for pulling in older items with upcoming deadlines). */
-  horizon: number;
+  horizon: Horizon;
+  /** End date (YYYY-MM-DD) when `horizon` is "custom". */
+  until?: string;
   j: JurisdictionCode[];
   t: TopicId[];
   min: Impact;
@@ -33,6 +35,24 @@ export interface BriefConfig {
   /** Development ids manually removed from the pack. */
   x: string[];
   notes: string;
+}
+
+/** Deadline window: a number of months ahead, every future deadline ("all"), or up to a chosen date ("custom"). */
+export type Horizon = number | "all" | "custom";
+export const HORIZON_MONTHS = [3, 6, 12, 18, 24] as const;
+
+/** Last date included in the deadline window (YYYY-MM-DD). */
+export function horizonEnd(c: Pick<BriefConfig, "horizon" | "until">, today: string): string {
+  if (c.horizon === "all") return "9999-12-31";
+  if (c.horizon === "custom") return c.until ?? addMonths(today, 36);
+  return addMonths(today, c.horizon);
+}
+
+/** Verb phrase for the summary, e.g. "fall within the next 12 months", "are scheduled (no end date)", "fall between now and 31 Dec 2031". */
+export function horizonPhrase(c: Pick<BriefConfig, "horizon" | "until">, today: string): string {
+  if (c.horizon === "all") return "are scheduled ahead (all dates, no end date)";
+  if (c.horizon === "custom") return `fall between now and ${formatDate(horizonEnd(c, today))}`;
+  return `fall within the next ${c.horizon} months`;
 }
 
 export function addMonths(iso: string, months: number): string {
@@ -71,7 +91,7 @@ export function configFromParams(p: URLSearchParams, today: string): BriefConfig
     author: p.get("by") ?? d.author,
     cls: (p.get("cls") as BriefConfig["cls"]) ?? d.cls,
     since: p.get("since") ?? d.since,
-    horizon: Number(p.get("h")) || d.horizon,
+    ...horizonFromParam(p.get("h"), d.horizon),
     j: (list("j") as JurisdictionCode[]) ?? d.j,
     t: (list("t") as TopicId[]) ?? d.t,
     min: (p.get("min") as Impact) ?? lowest ?? d.min,
@@ -82,6 +102,12 @@ export function configFromParams(p: URLSearchParams, today: string): BriefConfig
   };
 }
 
+function horizonFromParam(h: string | null, fallback: Horizon): Pick<BriefConfig, "horizon" | "until"> {
+  if (h === "all") return { horizon: "all" };
+  if (h && /^\d{4}-\d{2}-\d{2}$/.test(h)) return { horizon: "custom", until: h };
+  return { horizon: Number(h) || fallback };
+}
+
 export function configToParams(c: BriefConfig, today: string): string {
   const d = defaultConfig(today);
   const p = new URLSearchParams();
@@ -90,7 +116,8 @@ export function configToParams(c: BriefConfig, today: string): string {
   if (c.author !== d.author) p.set("by", c.author);
   if (c.cls !== d.cls) p.set("cls", c.cls);
   if (c.since !== d.since) p.set("since", c.since);
-  if (c.horizon !== d.horizon) p.set("h", String(c.horizon));
+  if (c.horizon === "custom") p.set("h", horizonEnd(c, today));
+  else if (c.horizon !== d.horizon) p.set("h", String(c.horizon));
   if (c.j.join() !== d.j.join()) p.set("j", c.j.join(","));
   if (c.t.join() !== d.t.join()) p.set("t", c.t.join(","));
   if (c.min !== d.min) p.set("min", c.min);
@@ -106,7 +133,7 @@ const IMPACT_RANK: Record<Impact, number> = { High: 0, Medium: 1, Low: 2 };
 
 /** Developments matching the scope (before manual exclusions). */
 export function candidates(c: BriefConfig, today: string): Development[] {
-  const end = addMonths(today, c.horizon);
+  const end = horizonEnd(c, today);
   return DEVELOPMENTS.filter(
     (d) =>
       c.j.includes(d.jurisdiction) &&
@@ -131,7 +158,7 @@ export interface Pack {
 
 export function buildPack(c: BriefConfig, today: string): Pack {
   const items = candidates(c, today).filter((d) => !c.x.includes(d.id));
-  const end = addMonths(today, c.horizon);
+  const end = horizonEnd(c, today);
   const deadlines = timelineItems(items).filter((k) => isUpcoming(k.date, today) && dateKey(k.date) <= end);
   const markets = JURISDICTIONS.filter((j) => c.j.includes(j.code));
   const topics = TOPICS.filter((t) => c.t.includes(t.id));
@@ -158,7 +185,7 @@ export function buildPack(c: BriefConfig, today: string): Pack {
     if (deadlines.length) {
       const first = deadlines[0];
       summary.push(
-        `${deadlines.length} key date${deadlines.length === 1 ? "" : "s"} fall within the next ${c.horizon} months — the first is “${first.label}” (${jurisdiction(first.dev.jurisdiction)?.name}, ${formatDate(first.date)}).`,
+        `${deadlines.length} key date${deadlines.length === 1 ? "" : "s"} ${horizonPhrase(c, today)} — the first is “${first.label}” (${jurisdiction(first.dev.jurisdiction)?.name}, ${formatDate(first.date)}).`,
       );
     }
     for (const t of topics) {
