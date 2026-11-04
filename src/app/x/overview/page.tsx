@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CONTENT_AS_OF, DEVELOPMENTS } from "@/data";
+import { DEVELOPMENTS } from "@/data";
 import DevCard from "@/components/DevCard";
 import Heatmap from "@/components/Heatmap";
 import Upcoming from "@/components/Upcoming";
@@ -8,7 +8,7 @@ import RegulatorUpdates from "@/components/RegulatorUpdates";
 // Regulator feeds are refreshed at most hourly.
 export const revalidate = 3600;
 import { PRIORITY_CODES, TOPICS } from "@/lib/taxonomy";
-import { sortDevs } from "@/lib/query";
+import { EMPTY_FILTERS, filtersToParams, sortDevs, type Filters } from "@/lib/query";
 
 export default function OverviewPage() {
   const priority = DEVELOPMENTS.filter((d) => PRIORITY_CODES.includes(d.jurisdiction));
@@ -16,6 +16,8 @@ export default function OverviewPage() {
   const live = priority.filter((d) => d.status === "Phasing in" || d.status === "In force").length;
   const pipeline = priority.filter((d) => d.status === "Proposed" || d.status === "Consultation").length;
   const latest = sortDevs(DEVELOPMENTS, "latest").slice(0, 6);
+  // Each headline box links to the Developments page filtered to exactly the items it counts.
+  const devLink = (f: Partial<Filters>) => `/x/developments${filtersToParams({ ...EMPTY_FILTERS, j: [...PRIORITY_CODES], ...f })}`;
   const maxTopic = Math.max(...TOPICS.map((t) => priority.filter((d) => d.topics.includes(t.id)).length));
 
   return (
@@ -40,26 +42,30 @@ export default function OverviewPage() {
       </div>
 
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <div className="panel stat">
+        <Link href={devLink({})} className="panel stat stat-link">
           <div className="stat-label">Tracked developments</div>
           <div className="stat-value">{priority.length}</div>
           <div className="stat-note">across 10 priority markets</div>
-        </div>
-        <div className="panel stat red">
+          <span className="stat-go" aria-hidden>View →</span>
+        </Link>
+        <Link href={devLink({ i: ["High"] })} className="panel stat red stat-link">
           <div className="stat-label">High impact</div>
           <div className="stat-value">{high}</div>
           <div className="stat-note">flagged for asset managers</div>
-        </div>
-        <div className="panel stat">
+          <span className="stat-go" aria-hidden>View →</span>
+        </Link>
+        <Link href={devLink({ s: ["In force", "Phasing in"] })} className="panel stat stat-link">
           <div className="stat-label">In force / phasing in</div>
           <div className="stat-value">{live}</div>
           <div className="stat-note">live obligations or regimes</div>
-        </div>
-        <div className="panel stat navy">
+          <span className="stat-go" aria-hidden>View →</span>
+        </Link>
+        <Link href={devLink({ s: ["Proposed", "Consultation"] })} className="panel stat navy stat-link">
           <div className="stat-label">In the pipeline</div>
           <div className="stat-value">{pipeline}</div>
           <div className="stat-note">proposals & consultations</div>
-        </div>
+          <span className="stat-go" aria-hidden>View →</span>
+        </Link>
       </div>
 
       <section className="panel" style={{ marginBottom: 16 }}>
@@ -119,10 +125,6 @@ export default function OverviewPage() {
             </div>
           </section>
 
-          <div className="disclaimer">
-            Seeded content reflects developments known as of {CONTENT_AS_OF}. It is a monitoring aid, not legal advice — confirm against the
-            linked primary sources before relying on any item. See <Link href="/x/about" style={{ textDecoration: "underline" }}>Methodology</Link>.
-          </div>
         </div>
       </div>
     </>

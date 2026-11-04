@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/Sidebar";
+import DisclaimerBar from "@/components/DisclaimerBar";
 import { LAST_REVIEWED } from "@/data";
 import { formatDate } from "@/lib/query";
 import "./globals.css";
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Sidebar lastReviewed={formatDate(LAST_REVIEWED)} />
           <main className="main">{children}</main>
         </div>
+        <DisclaimerBar />
       </body>
     </html>
   );
