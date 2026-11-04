@@ -70,11 +70,30 @@ GDELT news monitoring (`news-apac-br`, `news-litigation-enforcement`) and CourtL
 token) are still in `src/feeds/sources.ts`. They are only available through `/api/feed`, because they are news and court data, not
 regulator publications.
 
+## Refresh schedule
+
+| Source type | Refresh | How |
+| --- | --- | --- |
+| **RSS feeds** (all regulator feeds, plus any added via `RSS_FEEDS`) | **First Friday of each month** | Responses are cached indefinitely under the `regulator-rss` cache tag. A daily scheduled job calls `/api/cron/refresh-rss`. On the first Friday of the month (in `FEED_TIMEZONE`, default Asia/Singapore), the job clears the tag, and the feeds are re-downloaded on the next page view. On all other days the job does nothing. |
+| **APIs** (Federal Register, GOV.UK, UK Parliament Bills, EUR-Lex, Câmara, GDELT, CourtListener) | Hourly | Next.js data cache, `revalidate: 3600` |
+
+- **Scheduler:** `vercel.json` registers a Vercel Cron job that runs daily at 01:00 UTC (09:00 Singapore). It runs daily rather than
+  "Fridays only" because cron schedules use UTC, and standard cron cannot express "first Friday". The endpoint checks the date in your
+  timezone. On other hosts, have any scheduler call the endpoint once a day with the `Authorization: Bearer <CRON_SECRET>` header.
+- **Security:** set `CRON_SECRET` in the hosting environment. Without it, the endpoint refuses to run in production.
+- **Manual refresh:** `GET /api/cron/refresh-rss?force=1` with the same header refreshes all RSS feeds immediately (e.g. after adding a feed).
+- **First use:** the data cache starts empty after the first deployment (or if the host clears it), so feeds are downloaded once on first
+  use and then held until the next first Friday.
+- **Failures:** a feed that can't be reached is not cached. It is retried on each hourly page regeneration until it succeeds, then held
+  until the next first Friday.
+- **Visibility:** the *Regulator updates* panel shows the last and next scheduled refresh. Its feed status list shows each source as
+  "RSS, fetched <date>" or "API, hourly".
+
 ## Operating notes
 
-- **Caching:** pages with regulator updates regenerate at most hourly, and each upstream response is cached for an hour.
+- **Caching:** pages with regulator updates regenerate at most hourly. RSS responses are reused until the monthly refresh, and API responses for an hour.
 - **Configuration:** see `.env.example` (`FEED_CONTACT_EMAIL`, a generic team mailbox for the User-Agent the SEC requires;
   `FEED_LOOKBACK_DAYS`; `COURTLISTENER_TOKEN`; `RSS_FEEDS` for extra feeds without code changes).
 - **Relevance tuning:** keyword rules are in `src/feeds/classify.ts`.
-- **Health check:** `npm run feeds:check` exits non-zero if any enabled source fails.
+- **Health check:** `npm run feeds:check` exits non-zero if any enabled source fails. It runs outside Next.js, so it always fetches live and ignores the monthly cache.
 - **Offline test:** `npm run test:feeds`.

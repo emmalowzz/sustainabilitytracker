@@ -1,4 +1,5 @@
 import type { JurisdictionCode, TopicId } from "@/lib/taxonomy";
+import type { RefreshCadence } from "./schedule";
 
 /** A single item pulled from an external source, normalised for triage. */
 export interface FeedItem {
@@ -33,6 +34,10 @@ export interface SourceStatus {
   ms: number;
   /** Set when the connector needs configuration (e.g. an API key) that is missing. */
   skipped?: string;
+  /** How often the source is re-fetched: RSS monthly (first Friday), APIs hourly. */
+  refresh: RefreshCadence;
+  /** When the upstream response was actually downloaded (from its Date header), if known. */
+  fetchedAt?: string;
 }
 
 /** What each connector produces before classification. */
@@ -60,6 +65,8 @@ export interface Source {
   prefiltered?: boolean;
   /** Return a reason string to skip (e.g. missing API key); undefined to run. */
   skip?: () => string | undefined;
+  /** Refresh cadence; defaults to "hourly" (APIs). RSS sources are "monthly". */
+  refresh?: RefreshCadence;
   fetch: (ctx: FetchContext) => Promise<RawItem[]>;
 }
 
@@ -68,4 +75,6 @@ export interface FetchContext {
   since: string;
   fetchText: (url: string, init?: RequestInit) => Promise<string>;
   fetchJSON: <T = unknown>(url: string, init?: RequestInit) => Promise<T>;
+  /** Fetch an RSS/Atom feed: cached until the next first-Friday refresh. */
+  fetchFeed: (url: string) => Promise<string>;
 }

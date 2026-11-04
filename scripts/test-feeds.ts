@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { aggregate } from "../src/feeds/aggregate";
 import { parseFeed } from "../src/feeds/connectors/rss";
 import { suggestTopics, toISODate } from "../src/feeds/classify";
+import { firstFridayOf, isFirstFriday, lastScheduledRefresh, nextScheduledRefresh, RSS_CACHE_TAG } from "../src/feeds/schedule";
 
 const today = new Date().toISOString().slice(0, 10);
 const rssDate = new Date().toUTCString();
@@ -36,12 +37,14 @@ const FIXTURES: [RegExp, () => unknown][] = [
      { url: "https://www.sec.gov/newsroom/press-releases/2026-99", title: "SEC charges adviser over ESG claims", seendate: today.replace(/-/g, ""), sourcecountry: "United States" } ] })],
 ];
 
-globalThis.fetch = (async (input: RequestInfo | URL) => {
+const seenCache = new Map<string, unknown>();
+globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit & { next?: unknown }) => {
   const url = String(input);
+  seenCache.set(url, init?.next);
   const hit = FIXTURES.find(([re]) => re.test(url));
   if (!hit) return new Response("not stubbed", { status: 500 });
   const body = hit[1]();
-  return new Response(typeof body === "string" ? body : JSON.stringify(body), { status: 200 });
+  return new Response(typeof body === "string" ? body : JSON.stringify(body), { status: 200, headers: { Date: "Fri, 06 Nov 2026 01:00:05 GMT" } });
 }) as typeof fetch;
 
 async function main() {
@@ -51,6 +54,25 @@ async function main() {
   assert.deepEqual(suggestTopics("SEC fines adviser for greenwashing"), ["enforcement"]);
   assert.ok(suggestTopics("UK Stewardship Code 2026 published").includes("governance"));
   assert.equal(parseFeed(`<rss><channel><item><title>x</title><link>u</link></item></channel></rss>`).length, 1);
+
+  // First-Friday schedule
+  assert.equal(firstFridayOf(2026, 11), "2026-11-06");
+  assert.equal(firstFridayOf(2026, 12), "2026-12-04");
+  assert.equal(firstFridayOf(2027, 1), "2027-01-01");
+  assert.equal(firstFridayOf(2027, 10), "2027-10-01");
+  assert.equal(nextScheduledRefresh("2026-11-04"), "2026-11-06");
+  assert.equal(nextScheduledRefresh("2026-11-06"), "2026-12-04");
+  assert.equal(nextScheduledRefresh("2026-12-20"), "2027-01-01");
+  assert.equal(lastScheduledRefresh("2026-11-04"), "2026-10-02");
+  assert.equal(lastScheduledRefresh("2026-11-06"), "2026-11-06");
+  assert.equal(lastScheduledRefresh("2027-01-01"), "2027-01-01");
+  // 6 Nov 2026 is the first Friday; 13 Nov is a Friday but not the first; 7 Nov is a Saturday.
+  assert.equal(isFirstFriday(new Date("2026-11-06T01:00:00Z"), "Asia/Singapore"), true);
+  assert.equal(isFirstFriday(new Date("2026-11-13T01:00:00Z"), "Asia/Singapore"), false);
+  assert.equal(isFirstFriday(new Date("2026-11-07T01:00:00Z"), "Asia/Singapore"), false);
+  // Timezone matters: 01:00 UTC Fri 6 Nov is still Thursday 5 Nov in New York.
+  assert.equal(isFirstFriday(new Date("2026-11-06T01:00:00Z"), "America/New_York"), false);
+  assert.equal(isFirstFriday(new Date("2026-11-07T01:00:00Z"), "America/New_York"), true);
 
   const res = await aggregate({ lookbackDays: 30 });
   const by = Object.fromEntries(res.sources.map((s) => [s.id, s]));
@@ -64,6 +86,16 @@ async function main() {
   assert.equal(by["in-sebi"].count, 1, "SEBI ESG item kept");
   assert.equal(by["us-fed-bcreg"].count, 1);
   assert.equal(by["uk-pra-publications"].ok, false, "second BoE feed also reported failed");
+
+  // Cache policy: RSS kept until the first-Friday refresh; APIs hourly.
+  const rssPolicy = seenCache.get("https://www.sebi.gov.in/sebirss.xml") as { revalidate: unknown; tags?: string[] };
+  assert.equal(rssPolicy.revalidate, false, "RSS cached indefinitely");
+  assert.deepEqual(rssPolicy.tags, [RSS_CACHE_TAG], "RSS tagged for the monthly refresh");
+  const apiUrl = [...seenCache.keys()].find((u) => u.includes("federalregister.gov"))!;
+  assert.deepEqual(seenCache.get(apiUrl), { revalidate: 3600 }, "APIs refresh hourly");
+  assert.equal(by["in-sebi"].refresh, "monthly");
+  assert.equal(by["in-sebi"].fetchedAt, "2026-11-06T01:00:05.000Z", "fetch time taken from the Date header");
+  assert.equal(by["us-federal-register"].refresh, "hourly");
 
   // Scope filters used by the Overview / market pages / briefing pack
   const uk = await aggregate({ jurisdictions: ["UK"], kinds: ["Regulator news"] });

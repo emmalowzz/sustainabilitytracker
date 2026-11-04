@@ -330,7 +330,7 @@ export default function BriefingDocument({ p, updates = [], updatesNote }: { p: 
           <H2>Recent regulator updates</H2>
           <p className="bp-muted bp-small" style={{ marginBottom: 8 }}>
             Items published by regulators in the selected markets since {formatDate(c.since)}, filtered automatically for sustainability relevance.
-            These have not been reviewed; they are included for awareness.
+            Regulator RSS feeds are refreshed on the first Friday of each month. These items have not been reviewed; they are included for awareness.
           </p>
           {updates.length ? (
             <table className="bp-table">

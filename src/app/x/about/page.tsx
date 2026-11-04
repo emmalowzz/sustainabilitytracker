@@ -61,7 +61,7 @@ export default function AboutPage() {
         <h2 id="regulator-feeds">Regulator feeds</h2>
         <p>
           Regulator updates on the Overview, market pages and briefing packs come from the RSS feeds below, plus official registers (US Federal
-          Register, GOV.UK, UK Parliament Bills, EUR-Lex, Brazil&rsquo;s Câmara). Items are kept only if they match sustainability keywords.
+          Register, GOV.UK, UK Parliament Bills, EUR-Lex, Brazil&rsquo;s Câmara). Items are kept only if they match sustainability keywords. <strong>Refresh schedule:</strong> RSS feeds are re-downloaded on the <strong>first Friday of each month</strong> (Singapore time by default); the official register APIs refresh hourly.
           Many regulators in Asia-Pacific publish email alerts instead of RSS; their pages are linked so the team can subscribe directly.
         </p>
         <ul>

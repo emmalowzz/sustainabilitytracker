@@ -17,7 +17,7 @@ export type Confidence = "documented" | "likely";
 export type RegisteredSource = Source & { confidence: Confidence };
 
 function rss(id: string, name: string, jurisdiction: JurisdictionCode, url: string, confidence: Confidence, kind: Source["kind"] = "Regulator news"): RegisteredSource {
-  return { id, name, jurisdiction, kind, docs: url, confidence, fetch: async (ctx) => parseFeed(await ctx.fetchText(url)) };
+  return { id, name, jurisdiction, kind, docs: url, confidence, refresh: "monthly", fetch: async (ctx) => parseFeed(await ctx.fetchFeed(url)) };
 }
 
 // GDELT reports the publishing country by name; map it onto tracker jurisdictions.

@@ -1,6 +1,7 @@
 import type { FeedItem, FetchContext, SourceKind, SourceStatus } from "./types";
 import { allSources, type RegisteredSource } from "./sources";
 import { isRelevant, suggestTopics } from "./classify";
+import { API_REVALIDATE_SECONDS, RSS_CACHE_TAG } from "./schedule";
 
 export interface FeedResult {
   generatedAt: string;
@@ -10,7 +11,6 @@ export interface FeedResult {
 }
 
 const TIMEOUT_MS = Number(process.env.FEED_TIMEOUT_MS ?? 15000);
-const REVALIDATE_S = 3600;
 
 function userAgent() {
   // Several regulators (notably the SEC) reject requests without a descriptive User-Agent including a contact.
@@ -18,7 +18,13 @@ function userAgent() {
   return `SustainabilityTracker/1.0 (${contact})`;
 }
 
-async function timedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+/** Next.js data-cache policy for a request. */
+type CachePolicy = { revalidate: number | false; tags?: string[] };
+const API_CACHE: CachePolicy = { revalidate: API_REVALIDATE_SECONDS };
+// RSS: kept indefinitely, cleared on the first Friday of each month by /api/cron/refresh-rss.
+const RSS_CACHE: CachePolicy = { revalidate: false, tags: [RSS_CACHE_TAG] };
+
+async function timedFetch(url: string, init: RequestInit = {}, cache: CachePolicy = API_CACHE): Promise<Response> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
   try {
@@ -26,8 +32,7 @@ async function timedFetch(url: string, init: RequestInit = {}): Promise<Response
       ...init,
       signal: ctrl.signal,
       headers: { "User-Agent": userAgent(), ...(init.headers ?? {}) },
-      // Next.js data cache: each upstream response is reused for an hour.
-      next: { revalidate: REVALIDATE_S },
+      next: cache,
     } as RequestInit);
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`.trim());
     return res;
@@ -61,11 +66,20 @@ export const OFFICIAL_KINDS: SourceKind[] = ["Regulator news", "Official registe
 export async function aggregate(opts: AggregateOptions = {}): Promise<FeedResult> {
   const days = opts.lookbackDays ?? Number(process.env.FEED_LOOKBACK_DAYS ?? 60);
   const since = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10);
-  const ctx: FetchContext = {
+  // One context per source so we can record when its RSS feed was actually downloaded.
+  const makeCtx = (meta: { fetchedAt?: string }): FetchContext => ({
     since,
     fetchText: async (u, i) => (await timedFetch(u, i)).text(),
     fetchJSON: async (u, i) => (await timedFetch(u, { ...i, headers: { Accept: "application/json", ...(i?.headers ?? {}) } })).json(),
-  };
+    fetchFeed: async (u) => {
+      const res = await timedFetch(u, {}, RSS_CACHE);
+      // A cached response keeps the origin's Date header, i.e. the time of the last real download.
+      const d = res.headers.get("date");
+      const iso = d && !Number.isNaN(Date.parse(d)) ? new Date(d).toISOString() : undefined;
+      if (iso && (!meta.fetchedAt || iso < meta.fetchedAt)) meta.fetchedAt = iso;
+      return res.text();
+    },
+  });
 
   const sources = allSources().filter(
     (s) =>
@@ -75,7 +89,17 @@ export async function aggregate(opts: AggregateOptions = {}): Promise<FeedResult
   );
   const settled = await Promise.all(
     sources.map(async (src) => {
-      const base = { id: src.id, name: src.name, jurisdiction: src.jurisdiction, kind: src.kind, confidence: src.confidence, docs: src.docs };
+      const base = {
+        id: src.id,
+        name: src.name,
+        jurisdiction: src.jurisdiction,
+        kind: src.kind,
+        confidence: src.confidence,
+        docs: src.docs,
+        refresh: src.refresh ?? ("hourly" as const),
+      };
+      const meta: { fetchedAt?: string } = {};
+      const ctx = makeCtx(meta);
       const skip = src.skip?.();
       if (skip) return { status: { ...base, ok: false, count: 0, fetched: 0, ms: 0, skipped: skip }, items: [] as FeedItem[] };
       const t0 = Date.now();
@@ -100,7 +124,7 @@ export async function aggregate(opts: AggregateOptions = {}): Promise<FeedResult
             kind: src.kind,
           });
         }
-        return { status: { ...base, ok: true, count: items.length, fetched: raw.length, ms: Date.now() - t0 }, items };
+        return { status: { ...base, ok: true, count: items.length, fetched: raw.length, ms: Date.now() - t0, fetchedAt: meta.fetchedAt }, items };
       } catch (e) {
         return { status: { ...base, ok: false, count: 0, fetched: 0, ms: Date.now() - t0, error: errorMessage(e) }, items: [] as FeedItem[] };
       }

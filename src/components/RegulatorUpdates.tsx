@@ -3,17 +3,21 @@ import { aggregate, OFFICIAL_KINDS } from "@/feeds/aggregate";
 import { REGULATOR_FEEDS, STATUS_LABEL } from "@/feeds/regulators";
 import { jurisdiction } from "@/lib/taxonomy";
 import { formatDate } from "@/lib/query";
+import { feedTimezone, lastScheduledRefresh, localDate, nextScheduledRefresh } from "@/feeds/schedule";
 import { TopicChip } from "./DevCard";
 
 /**
  * Sustainability-relevant items from regulators' RSS feeds and official registers.
- * Server component: fetched at render time and cached for an hour (pages using it set `revalidate`).
+ * Server component. RSS feeds are re-downloaded on the first Friday of each month; API sources hourly.
  */
 export default async function RegulatorUpdates({ code, limit = 8 }: { code?: string; limit?: number }) {
   const result = await aggregate({ kinds: OFFICIAL_KINDS, jurisdictions: code ? [code] : undefined });
   const items = result.items.slice(0, limit);
   const ok = result.sources.filter((s) => s.ok).length;
   const withoutFeed = REGULATOR_FEEDS.filter((f) => (!code || f.jurisdiction === code) && !f.url);
+  const today = localDate(new Date(), feedTimezone()).iso;
+  const hasRss = result.sources.some((s) => s.refresh === "monthly");
+  const short = (iso?: string) => (iso ? formatDate(iso.slice(0, 10)).replace(/ \d{4}$/, "") : "");
 
   return (
     <section className="panel">
@@ -21,6 +25,11 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
         <div>
           <h2>Regulator updates</h2>
           <div className="small muted">Sustainability-related items from regulator feeds, last {Math.round((Date.parse(result.generatedAt) - Date.parse(result.since)) / 86400000)} days · unreviewed</div>
+          {hasRss && (
+            <div className="small muted" style={{ marginTop: 2 }}>
+              RSS feeds refresh on the first Friday of each month (last {formatDate(lastScheduledRefresh(today))}, next {formatDate(nextScheduledRefresh(today))}) · official registers hourly
+            </div>
+          )}
         </div>
       </div>
       <div className="panel-body">
@@ -70,6 +79,8 @@ export default async function RegulatorUpdates({ code, limit = 8 }: { code?: str
                 </a>
                 <span className="muted" title={s.error ?? s.skipped} style={{ whiteSpace: "nowrap" }}>
                   {s.ok ? `${s.count} relevant` : s.skipped ? "off" : "unreachable"}
+                  {" · "}
+                  {s.refresh === "monthly" ? (s.fetchedAt ? `RSS, fetched ${short(s.fetchedAt)}` : "RSS, monthly") : "API, hourly"}
                 </span>
               </div>
             ))}

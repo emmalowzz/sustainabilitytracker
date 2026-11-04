@@ -3,6 +3,7 @@
  *   npm run feeds:check                 # all sources
  *   npm run feeds:check -- us-sec-press # specific source ids
  * Exits non-zero if any enabled source fails, so it can run in CI.
+ * Runs outside Next.js, so it always fetches live (it ignores the monthly RSS cache).
  */
 import { aggregate } from "../src/feeds/aggregate";
 
@@ -12,6 +13,7 @@ async function main() {
   const rows = res.sources.map((s) => ({
     source: s.id,
     status: s.ok ? "OK" : s.skipped ? "SKIPPED" : "FAIL",
+    refresh: s.refresh === "monthly" ? "RSS · 1st Fri" : "API · hourly",
     relevant: s.count,
     fetched: s.fetched,
     ms: s.ms,
