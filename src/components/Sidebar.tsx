@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { JURISDICTIONS, TOPICS } from "@/lib/taxonomy";
+import { formatDate } from "@/lib/query";
 
 // ── Minimal stroke icons (24px grid), coloured with currentColor
 const ICONS = {
@@ -52,7 +53,14 @@ function Section({ title, open, onToggle, children }: { title: string; open: boo
   );
 }
 
-export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
+interface ScanStatus {
+  lastScan: string | null;
+  sourcesCollected: number;
+  sourcesTotal: number;
+  nextScan: string;
+}
+
+export default function Sidebar() {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const onTopic = path.startsWith("/x/topics/");
@@ -65,6 +73,15 @@ export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
     if (onTopic) setTopicsOpen(true);
     if (onMarket) setMarketsOpen(true);
   }, [onTopic, onMarket]);
+
+  // Date of the last monthly regulator scan, read from the server so it stays current on every page.
+  const [scan, setScan] = useState<ScanStatus | null>(null);
+  useEffect(() => {
+    fetch("/api/scan-status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: ScanStatus | null) => d && setScan(d))
+      .catch(() => {});
+  }, []);
 
   const isActive = (href: string) => path === href || (href !== "/x/overview" && path.startsWith(href + "/"));
   const close = () => setOpen(false);
@@ -148,9 +165,16 @@ export default function Sidebar({ lastReviewed }: { lastReviewed: string }) {
             <Icon name="info" />
             Methodology
           </Link>
-          <div className="side-meta">
-            <span className="side-dot" style={{ background: "var(--green-2)" }} />
-            Reviewed {lastReviewed}
+          <div
+            className="side-meta"
+            title={
+              scan
+                ? `Regulator RSS feeds and websites are scanned on the first Friday of each month. ${scan.sourcesCollected} of ${scan.sourcesTotal} sources collected. Next scan: ${formatDate(scan.nextScan)}.`
+                : undefined
+            }
+          >
+            <span className="side-dot" style={{ background: scan?.lastScan ? "var(--green-2)" : "var(--on-navy-muted)" }} />
+            {!scan ? "Last scan …" : scan.lastScan ? `Last scan ${formatDate(scan.lastScan)}` : "Last scan pending"}
           </div>
         </div>
       </aside>

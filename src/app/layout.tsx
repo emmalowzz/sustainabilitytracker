@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Sidebar from "@/components/Sidebar";
 import DisclaimerBar from "@/components/DisclaimerBar";
-import { LAST_REVIEWED } from "@/data";
-import { formatDate } from "@/lib/query";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -16,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <div className="shell">
-          <Sidebar lastReviewed={formatDate(LAST_REVIEWED)} />
+          <Sidebar />
           <main className="main">{children}</main>
         </div>
         <DisclaimerBar />

@@ -59,7 +59,7 @@ npm run test:feeds           # offline pipeline tests
 
 All content is in `src/data/` (`apac.ts`, `americas.ts`, `europe.ts`, `international.ts`), with
 per-market posture in `profiles.ts`. Each entry is type-checked against `src/lib/types.ts`.
-After a review, bump `LAST_REVIEWED` in `src/data/index.ts`.
+The sidebar shows the date of the last monthly regulator scan (from `/api/scan-status`).
 
 > Seeded content reflects developments known as of mid-2026. It is a monitoring aid, not legal
 > advice — verify each item against its linked primary source before relying on it.
