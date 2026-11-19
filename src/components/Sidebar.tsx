@@ -55,6 +55,8 @@ function Section({ title, open, onToggle, children }: { title: string; open: boo
 
 interface ScanStatus {
   lastScan: string | null;
+  lastScheduled: string;
+  overdue: boolean;
   sourcesCollected: number;
   sourcesTotal: number;
   nextScan: string;
@@ -169,12 +171,12 @@ export default function Sidebar() {
             className="side-meta"
             title={
               scan
-                ? `Regulator RSS feeds and websites are scanned on the first Friday of each month. ${scan.sourcesCollected} of ${scan.sourcesTotal} sources collected. Next scan: ${formatDate(scan.nextScan)}.`
+                ? `Regulator RSS feeds and websites are scanned on the first Friday of each month. ${scan.sourcesCollected} of ${scan.sourcesTotal} sources collected.${scan.overdue ? ` The ${formatDate(scan.lastScheduled)} scan has not completed yet; it is retried daily.` : ""} Next scan: ${formatDate(scan.nextScan)}.`
                 : undefined
             }
           >
-            <span className="side-dot" style={{ background: scan?.lastScan ? "var(--green-2)" : "var(--on-navy-muted)" }} />
-            {!scan ? "Last scan …" : scan.lastScan ? `Last scan ${formatDate(scan.lastScan)}` : "Last scan pending"}
+            <span className="side-dot" style={{ background: !scan?.lastScan ? "var(--on-navy-muted)" : scan.overdue ? "#f0b35b" : "var(--green-2)" }} />
+            {!scan ? "Last scan …" : scan.lastScan ? `Last scan ${formatDate(scan.lastScan)}${scan.overdue ? " · overdue" : ""}` : "Last scan pending"}
           </div>
         </div>
       </aside>

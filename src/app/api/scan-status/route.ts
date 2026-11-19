@@ -1,5 +1,5 @@
 import { aggregate } from "@/feeds/aggregate";
-import { feedTimezone, localDate, nextScheduledRefresh } from "@/feeds/schedule";
+import { feedTimezone, lastScheduledRefresh, localDate, nextScheduledRefresh } from "@/feeds/schedule";
 
 /**
  * GET /api/scan-status → when the monthly regulator scan (RSS feeds + website scans) last actually collected data.
@@ -17,8 +17,13 @@ export async function GET() {
   const latest = collected.map((s) => s.fetchedAt!).sort().at(-1);
   const tz = feedTimezone();
   const today = localDate(new Date(), tz).iso;
+  const lastScan = latest ? localDate(new Date(latest), tz).iso : null;
+  const lastScheduled = lastScheduledRefresh(today);
   return Response.json({
-    lastScan: latest ? localDate(new Date(latest), tz).iso : null,
+    lastScan,
+    lastScheduled,
+    // True when the most recent first-Friday scan hasn't been collected yet (the daily job will catch up).
+    overdue: lastScan !== null && lastScan < lastScheduled,
     sourcesCollected: collected.length,
     sourcesTotal: monthly.length,
     nextScan: nextScheduledRefresh(today),

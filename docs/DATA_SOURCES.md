@@ -114,11 +114,20 @@ regulator publications.
 | **RSS feeds** (all regulator feeds, plus any added via `RSS_FEEDS`) and **regulator website scans** | **First Friday of each month** | Responses are cached indefinitely under the `regulator-rss` cache tag. A daily scheduled job calls `/api/cron/refresh-rss`. On the first Friday of the month (in `FEED_TIMEZONE`, default Asia/Singapore), the job clears the tag, and the feeds are re-downloaded on the next page view. On all other days the job does nothing. |
 | **APIs** (Federal Register, GOV.UK, UK Parliament Bills, EUR-Lex, Câmara, GDELT, CourtListener) | Hourly | Next.js data cache, `revalidate: 3600` |
 
-- **Scheduler:** `vercel.json` registers a Vercel Cron job that runs daily at 01:00 UTC (09:00 Singapore). It runs daily rather than
-  "Fridays only" because cron schedules use UTC, and standard cron cannot express "first Friday". The endpoint checks the date in your
-  timezone. On other hosts, have any scheduler call the endpoint once a day with the `Authorization: Bearer <CRON_SECRET>` header.
-- **Security:** set `CRON_SECRET` in the hosting environment. Without it, the endpoint refuses to run in production.
-- **Manual refresh:** `GET /api/cron/refresh-rss?force=1` with the same header refreshes all RSS feeds immediately (e.g. after adding a feed).
+- **Scheduler:** `vercel.json` registers a Vercel Cron job that runs daily at 01:00 UTC (09:00 Singapore) and calls
+  `/api/cron/refresh-rss`. On other hosts, any scheduler that calls that address once a day works.
+- **Self-healing:** each daily run checks whether the cached regulator data was collected *before* the most recent first Friday
+  (in `FEED_TIMEZONE`). If it was, the run refreshes: on the first Friday itself, or on the next day after a missed or failed
+  run. Once the data is current, further runs do nothing until the next first Friday.
+- **Collection at job time:** after clearing the cache, the job re-collects every RSS feed and website scan as soon as its response is
+  sent. Page views then reuse that data. The outcome is logged as `[refresh-rss] … collected N/M regulator sources`, so check the
+  host's function logs.
+- **Security:** the routine daily call does not need a secret, because it can refresh at most once a month. `CRON_SECRET` is recommended.
+  When it is set, every call must send `Authorization: Bearer <CRON_SECRET>` (Vercel Cron does this automatically).
+- **Manual refresh:** `GET /api/cron/refresh-rss?force=1` with the secret header refreshes everything immediately. It is refused if
+  `CRON_SECRET` is not set.
+- **Sidebar:** shows "Last scan <date>", or "Last scan <date> · overdue" (amber) if the most recent first-Friday scan hasn't been
+  collected yet.
 - **First use:** the data cache starts empty after the first deployment (or if the host clears it), so feeds are downloaded once on first
   use and then held until the next first Friday.
 - **Failures:** a feed that can't be reached is not cached. It is retried on each hourly page regeneration until it succeeds, then held

@@ -43,7 +43,7 @@ Deploys to Vercel with zero configuration.
 
 ## Regulator updates
 
-Regulators' RSS feeds and official registers feed a *Regulator updates* panel on the Overview and on each market page, and an optional section in briefing packs. Feed coverage per regulator is on the Methodology page. **RSS feeds — and website scans for regulators without a usable feed — refresh on the first Friday of each month** through a scheduled job (`vercel.json` → `/api/cron/refresh-rss`; set `CRON_SECRET` in production). API sources refresh hourly. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md#refresh-schedule).
+Regulators' RSS feeds and official registers feed a *Regulator updates* panel on the Overview and on each market page, and an optional section in briefing packs. Feed coverage per regulator is on the Methodology page. **RSS feeds — and website scans for regulators without a usable feed — refresh on the first Friday of each month** through a scheduled job (`vercel.json` → `/api/cron/refresh-rss`; it runs daily and catches up automatically if a first-Friday run is missed; `CRON_SECRET` is recommended). API sources refresh hourly. See [`docs/DATA_SOURCES.md`](docs/DATA_SOURCES.md#refresh-schedule).
 
 ## Live data sources
 
